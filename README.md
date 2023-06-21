@@ -1,6 +1,6 @@
 # ATLAS_HH_bbgg
 ## MadGraph5-Pythia8
-Following tuotorial is assume using lxplus account. Since result files of these simulation are large, it is preferred to install the softwares in your CERN EOS storage space.
+Following tutorial is assume using lxplus account. Since result files of these simulation are large, it is preferred to install the softwares in your CERN EOS storage space.
 ### MG5 installation
 ```bash
 cd /eos/useri/<initial>/<user name>/
