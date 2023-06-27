@@ -45,9 +45,9 @@ set ebeam2 7000
 set nevents 100000
 set iseed 1823211
 set etaj 2.5
-set etajmin 2.5
+set etajmin -2.5
 set etab 2.5
-set etabmin 2.5
+set etabmin -2.5
 set ptj 20
 set ptb 20
 ```
