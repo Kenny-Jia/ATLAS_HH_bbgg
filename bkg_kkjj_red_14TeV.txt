@@ -1,0 +1,22 @@
+import model sm
+define k = b b~ c c~
+define i = u s d c b u~ s~ d~ c~ b~
+define j = u s d c b u~ s~ d~ c~ b~ g
+generate p p > k k i i / z h
+add process p p > k k i j / z h
+output bkg_kkjj_red_14TeV
+launch
+shower=Pythia8
+set etaj 2.5
+set etab 2.5
+set ptj 20
+set ptb 20
+set etajmin -2.5
+set etabmin -2.5
+set mh 125.0
+set wh 0.004
+set ebeam1 7000
+set ebeam2 7000
+set nevents 100000
+set iseed 1823211
+0
