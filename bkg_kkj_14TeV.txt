@@ -2,7 +2,7 @@ import model sm
 define k = b b~ c c~
 define j = u s d c b u~ s~ d~ c~ b~ g
 generate p p > k k j / z h
-output bkg_kkjj_14TeV
+output bkg_kkj_14TeV
 launch
 shower=Pythia8
 set etaj 2.5
