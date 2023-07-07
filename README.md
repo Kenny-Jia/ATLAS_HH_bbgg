@@ -68,7 +68,7 @@ You could also get it from their official website:
 wget http://cp3.irmp.ucl.ac.be/downloads/Delphes-3.5.0.tar.gz
 tar xvf Delphes-3.5.0.tar.gz 
 cd Delphes-3.5.0
-export $delphes=$PWD
+export delphes=$PWD
 ```
 Then compile
 ```bash
@@ -77,7 +77,7 @@ make -j 8
 ```
 ### Simulation
 ```bash
-./DelphesHepMC2 cards/delphes_card_ATLAS.tcl <name for output root file>.root $mg5dir/<your output directory>/Events/run_01/tag_1_pythia8_events.hepmc
+./DelphesHepMC2 cards/delphes_card_HLLHC.tcl <name for output root file>.root $mg5dir/<your output directory>/Events/run_01/tag_1_pythia8_events.hepmc
 ```
 
 
