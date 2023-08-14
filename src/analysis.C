@@ -24,7 +24,7 @@
 #include <time.h>
 
 TLorentzVector HiggsBTag(Int_t nPar, TLeaf *Par_eta, TLeaf *Par_phi, TLeaf *Par_pid, TLeaf *Par_M1, TLeaf *Par_pt, Double_t eta, Double_t phi, Double_t pt) {
-    Double_t minDeltaR = 0.4;
+    Double_t minDeltaR = 0.6;
     TLorentzVector truthbjet;
     truthbjet.SetPtEtaPhiM(0, 0, 0, 1000);
     for (Int_t parentry = 0; parentry < nPar; parentry++) {
@@ -48,7 +48,7 @@ TLorentzVector HiggsBTag(Int_t nPar, TLeaf *Par_eta, TLeaf *Par_phi, TLeaf *Par_
 }
 
 TLorentzVector HiggsGluTag(Int_t nPar, TLeaf *Par_eta, TLeaf *Par_phi, TLeaf *Par_pid, TLeaf *Par_M1, TLeaf *Par_pt, Double_t eta, Double_t phi, Double_t pt) {
-    Double_t minDeltaR = 0.4;
+    Double_t minDeltaR = 0.6;
     TLorentzVector truthgjet;
     truthgjet.SetPtEtaPhiM(0, 0, 0, 10000);
     for (Int_t parentry = 0; parentry < nPar; parentry++) {
@@ -79,12 +79,12 @@ void analysis(const char *inputFile) {
     TFile *file_sig = new TFile(inputFile);
     TTree *tree_sig = (TTree*) file_sig -> Get("Delphes");
 
-    TLeaf *Jet_size = tree_sig -> GetLeaf("Jet_size");
-    TLeaf *Jet_pt = tree_sig -> GetLeaf("Jet.PT");
-    TLeaf *Jet_eta = tree_sig -> GetLeaf("Jet.Eta");
-    TLeaf *Jet_phi = tree_sig -> GetLeaf("Jet.Phi");
-    TLeaf *Jet_mass = tree_sig -> GetLeaf("Jet.Mass");
-    TLeaf *Jet_btag = tree_sig -> GetLeaf("Jet.BTag");
+    TLeaf *Jet_size = tree_sig -> GetLeaf("PFJet06_size");
+    TLeaf *Jet_pt = tree_sig -> GetLeaf("PFJet06.PT");
+    TLeaf *Jet_eta = tree_sig -> GetLeaf("PFJet06.Eta");
+    TLeaf *Jet_phi = tree_sig -> GetLeaf("PFJet06.Phi");
+    TLeaf *Jet_mass = tree_sig -> GetLeaf("PFJe06t.Mass");
+    TLeaf *Jet_btag = tree_sig -> GetLeaf("pFJet06.BTag");
 
     TLeaf *Par_size = tree_sig -> GetLeaf("Particle_size");
     TLeaf *Par_eta = tree_sig -> GetLeaf("Particle.Eta");
