@@ -1029,18 +1029,13 @@ module FastJetFinder GenJetFinder10 {
 
   set ComputeNsubjettiness 1
   set Beta 1.0
-  set AxisMode 4
+  set AxisMode 3 
 
-  set ComputeSoftDrop 1
-  set BetaSoftDrop 0.0
-  set SymmetryCutSoftDrop 0.1
-  set R0SoftDrop 1.0
-  
   set ComputeTrimming 1
   set RTrim 0.2
   set PtFracTrim 0.05
 
-  set JetPTMin 40.0
+  set JetPTMin 200.0
 }
 
 
@@ -1186,13 +1181,8 @@ module FastJetFinder FastJetFinder10 {
 
   set ComputeNsubjettiness 1
   set Beta 1.0
-  set AxisMode 4
+  set AxisMode 3 
 
-  set ComputeSoftDrop 1
-  set BetaSoftDrop 0.0
-  set SymmetryCutSoftDrop 0.1
-  set R0SoftDrop 1.0
-  
   set ComputeTrimming 1
   set RTrim 0.2
   set PtFracTrim 0.05
@@ -2390,7 +2380,6 @@ module TreeWriter TreeWriter {
   add Branch HCal/eflowTracks EFlowTrack Track
   add Branch ECal/eflowPhotons EFlowPhoton Tower
   add Branch HCal/eflowNeutralHadrons EFlowNeutralHadron Tower
- 
 
   add Branch UniqueObjectFinder/photons Photon Photon
   add Branch UniqueObjectFinder/electrons Electron Electron
