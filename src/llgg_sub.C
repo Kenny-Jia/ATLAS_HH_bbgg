@@ -36,6 +36,7 @@ void llgg_sub(const char *inputFile) {
     ExRootTreeReader *treeReader = new ExRootTreeReader(&chain);
     Long64_t nEntries = treeReader->GetEntries();
 
+    TClonesArray *branchEFlowTracks = treeReader->UseBranch("EFlowTrack");
     TClonesArray *branchJet = treeReader->UseBranch("PFJet10");
     TClonesArray *branchElectron = treeReader->UseBranch("Electron");
     TClonesArray *branchMuon = treeReader->UseBranch("Muon");
@@ -56,6 +57,9 @@ void llgg_sub(const char *inputFile) {
 	Int_t nJet = branchJet->GetEntries();
 	Int_t ne = branchElectron->GetEntries();
 	Int_t nMu = branchMuon->GetEntries();
+	Int_t nEFlowTrack = branchEFlowTracks->GetEntriesFast();
+	TObject *object;
+	
 
 	Int_t emuflag = 0; 
 
@@ -165,6 +169,28 @@ void llgg_sub(const char *inputFile) {
 		hNNeutral = hjet -> NNeutrals;
 		hNCharged = hjet -> NCharged;
 		hChargeFrac = hjet -> ChargedEnergyFraction;
+
+		for(int i = 0; i < hjet->Constituents.GetEntriesFast(); ++i) {
+	    	    object = hjet->Constituents.At(i);
+		    if(object == 0) continue;
+	    	    if(object->IsA() == Tower::Class()) {
+			Tower *tower;
+			tower = (Tower*) object;
+			std::cout << "is tower with Eem = " << tower->Eem << "and Ehad = " <<tower->Ehad;
+	    	    }
+	    	    if(object->IsA() == GenParticle::Class()) {
+			std::cout << "is genpar";
+	    	    } 
+		    if(object->IsA() == Track::Class()) {
+			Track *track;
+			track = (Track*) object;
+			std::cout << "is track";
+		    }
+	    	    if(object->IsA() == Candidate::Class()) {
+			std::cout << "is candidate";
+	    	    }
+	    	    std::cout << std::endl;
+		}
 	    }
 	}
 	TLorentzVector z_ll;
@@ -208,43 +234,43 @@ void llgg_sub(const char *inputFile) {
     Zmass -> Draw("HIST");
     Hmass -> Draw("same");
     legend -> Draw("same");
-    totalcanvas -> SaveAs("ZH_bkg_zj.png");
+    totalcanvas -> SaveAs("ZH_sig.png");
 
     TCanvas *tau21canvas = new TCanvas("21canvas", "Canvas", 1400, 1400, 1400, 1400);
     tau21canvas -> SetWindowSize(1204,1228);
     tau21canvas -> SetCanvasSize(1200,1200);
     tau21 -> Draw("HIST");
-    tau21canvas -> SaveAs("ZH_bkg_zj_tau21.png");
+    tau21canvas -> SaveAs("ZH_sig_tau21.png");
 
     TCanvas *tau32canvas = new TCanvas("32canvas", "Canvas", 1400, 1400, 1400, 1400);
     tau32canvas -> SetWindowSize(1204,1228);
     tau32canvas -> SetCanvasSize(1200,1200);
     tau32 -> Draw("HIST");
-    tau32canvas -> SaveAs("ZH_bkg_zj_tau32.png");
+    tau32canvas -> SaveAs("ZH_sig_tau32.png");
 
     TCanvas *chargecanvas = new TCanvas("chargecanvas", "Canvas", 1400, 1400, 1400, 1400);
     chargecanvas -> SetWindowSize(1204,1228);
     chargecanvas -> SetCanvasSize(1200,1200);
     nchargehisto -> Draw("HIST");
-    chargecanvas -> SaveAs("ZH_bkg_zj_ncharge.png");
+    chargecanvas -> SaveAs("ZH_sig_ncharge.png");
 
     TCanvas *neutralcanvas = new TCanvas("neutralcanvas", "Canvas", 1400, 1400, 1400, 1400);
     neutralcanvas -> SetWindowSize(1204,1228);
     neutralcanvas -> SetCanvasSize(1200,1200);
     nneutralhisto -> Draw("HIST");
-    neutralcanvas -> SaveAs("ZH_bkg_zj_nneutral.png");
+    neutralcanvas -> SaveAs("ZH_sig_nneutral.png");
 
     TCanvas *ptcanvas = new TCanvas("ptcanvas", "Canvas", 1400, 1400, 1400, 1400);
     ptcanvas -> SetWindowSize(1204,1228);
     ptcanvas -> SetCanvasSize(1200,1200);
     pthisto -> Draw("HIST");
-    ptcanvas -> SaveAs("ZH_bkg_zj_pt.png");
+    ptcanvas -> SaveAs("ZH_sig_pt.png");
 
     TCanvas *ChargeFraccanvas = new TCanvas("ChargeFraccanvas", "Canvas", 1400, 1400, 1400, 1400);
     ChargeFraccanvas -> SetWindowSize(1204,1228);
     ChargeFraccanvas -> SetCanvasSize(1200,1200);
     ChargeFrachisto -> Draw("HIST");
-    ChargeFraccanvas -> SaveAs("ZH_bkg_zj_ChargeFrac.png");
+    ChargeFraccanvas -> SaveAs("ZH_sig_ChargeFrac.png");
 
     file_sig -> Close();
 }
