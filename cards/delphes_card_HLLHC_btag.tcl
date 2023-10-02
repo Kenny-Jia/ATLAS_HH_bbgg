@@ -84,12 +84,14 @@ set ExecutionPath {
   ParticleFlowJet05EnergyScale
   ParticleFlowJet06EnergyScale
   ParticleFlowJet10EnergyScale
+  ParticleFlowJet15EnergyScale
 
   JetFlavorAssociation
   Jet06FlavorAssociation
   ParticleFlowJet05FlavorAssociation
   ParticleFlowJet06FlavorAssociation
   ParticleFlowJet10FlavorAssociation
+  ParticleFlowJet15FlavorAssociation
   GenJetFlavorAssociation
   GenJetFlavorAssociation02
   GenJetFlavorAssociation04
@@ -102,6 +104,7 @@ set ExecutionPath {
   ParticleFlowBTagging05
   ParticleFlowBTagging06
   ParticleFlowBTagging10
+  ParticleFlowBTagging15
   GenBTagging
   GenBTagging02
   GenBTagging04
@@ -1187,7 +1190,7 @@ module FastJetFinder FastJetFinder10 {
   set RTrim 0.2
   set PtFracTrim 0.05
 
-  set JetPTMin 40.0
+  set JetPTMin 200.0
 }
 
 ##################
@@ -1205,12 +1208,11 @@ module FastJetFinder FastJetFinder15 {
 
   set ComputeNsubjettiness 1
   set Beta 1.0
-  set AxisMode 4
+  set AxisMode 3 
 
-  set ComputeSoftDrop 1
-  set BetaSoftDrop 0.0
-  set SymmetryCutSoftDrop 0.1
-  set R0SoftDrop 1.5
+  set ComputeTrimming 1
+  set RTrim 0.2
+  set PtFracTrim 0.05
 
   set JetPTMin 25.0
 }
@@ -1517,6 +1519,18 @@ module EnergyScale ParticleFlowJet10EnergyScale {
   set ScaleFormula {1.00}
 }
 
+##################
+# Jet Energy Scale
+##################
+
+module EnergyScale ParticleFlowJet15EnergyScale {
+  set InputArray FastJetFinder15/jets
+  set OutputArray jets
+
+ # scale formula for jets
+  set ScaleFormula {1.00}
+}
+
 
 ########################
 # Jet Flavor Association
@@ -1579,6 +1593,18 @@ module JetFlavorAssociation ParticleFlowJet10FlavorAssociation {
   set JetInputArray ParticleFlowJet10EnergyScale/jets
 
   set DeltaR 1.0
+  set PartonPTMin 5.0
+  set PartonEtaMax 4.0
+
+}
+module JetFlavorAssociation ParticleFlowJet15FlavorAssociation {
+
+  set PartonInputArray Delphes/partons
+  set ParticleInputArray Delphes/allParticles
+  set ParticleLHEFInputArray Delphes/allParticlesLHEF
+  set JetInputArray ParticleFlowJet15EnergyScale/jets
+
+  set DeltaR 1.5
   set PartonPTMin 5.0
   set PartonEtaMax 4.0
 
@@ -2059,6 +2085,45 @@ module BTagging ParticleFlowBTagging10 {
   (abs(eta) >= 4.0) * (0.00)}
 
 }
+module BTagging ParticleFlowBTagging15 {
+  set JetInputArray ParticleFlowJet15EnergyScale/jets
+
+  set BitNumber 0
+
+  add EfficiencyFormula {0} {
+
+  (pt <= 10.0)                       * (0.00) +
+  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
+  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 4.0) * (0.00)}
+
+  add EfficiencyFormula {4} {
+
+  (pt <= 10.0)                       * (0.00) +
+  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
+  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 4.0) * (0.00)}
+
+  add EfficiencyFormula {5} {
+
+  (pt <= 10.0)                                                       * (0.00) +
+  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
+  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
+  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
+  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
+  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
+  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
+  (abs(eta) >= 4.0) * (0.00)}
+
+}
 module BTagging GenBTagging {
   set JetInputArray GenJetFinder/jets
 
@@ -2358,7 +2423,7 @@ module UniqueObjectFinder UniqueObjectFinder {
   add InputArray PhotonEfficiency/photons photons
   add InputArray ElectronEfficiency/electrons electrons
   add InputArray MuonEfficiency/muons muons
-  add InputArray JetEnergyScale/jets jets
+  add InputArray ParticleFlowJet10EnergyScale/jets jets
 
 }
 
@@ -2389,6 +2454,7 @@ module TreeWriter TreeWriter {
   add Branch ParticleFlowJet05EnergyScale/jets PFJet05 Jet
   add Branch ParticleFlowJet06EnergyScale/jets PFJet06 Jet
   add Branch ParticleFlowJet10EnergyScale/jets PFJet10 Jet
+  add Branch ParticleFlowJet15EnergyScale/jets PFJet15 Jet
 
   add Branch GenJetFinder02/jets GenJet02 Jet
   add Branch GenJetFinder04/jets GenJet04 Jet

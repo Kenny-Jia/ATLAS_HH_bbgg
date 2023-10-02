@@ -23,7 +23,7 @@
 #include <time.h>
 #endif
 	
-void llgg_sub(const char *inputFile) {
+void llgg_truth(const char *inputFile) {
 
     std::cout << "loading Delphes library" << std::endl;
     gSystem -> Load("/eos/user/h/hjia/ATLAS_HH_bbgg/Delphes-3.5.0/libDelphes.so");
@@ -41,10 +41,11 @@ void llgg_sub(const char *inputFile) {
     TClonesArray *branchJet = treeReader->UseBranch("PFJet10");
     TClonesArray *branchElectron = treeReader->UseBranch("Electron");
     TClonesArray *branchMuon = treeReader->UseBranch("Muon");
+    TClonesArray *branchGenPar = treeReader->UseBranch("Particle");
     TClonesArray *branchEvent = treeReader->UseBranch("Event");
 
-    TH1D *Zmass = new TH1D("Zmass", "lepton pair invariant mass", 100, 0, 170);
-    TH1D *Hmass = new TH1D("Hmass", "jet pair invariant mass", 30, 0, 170);
+    TH1D *Zmass = new TH1D("Zmass", "lepton pair invariant mass", 100, 30, 220);
+    TH1D *Hmass = new TH1D("Hmass", "jet pair invariant mass", 30, 30, 220);
     TH1D *tau21 = new TH1D("tau21", "higgs tau21", 30, 0, 1);
     //TH1D *tau32 = new TH1D("tau32", "higgs tau32", 30, 0, 1);
     TH1D *nchargehisto = new TH1D("nchargehisto", "number of charge constituents", 30, 0, 70);
@@ -52,16 +53,22 @@ void llgg_sub(const char *inputFile) {
     TH1D *pthisto = new TH1D("pthisto", "higgs pt", 30, 0, 1000);
     TH1D *ChargeFrachisto = new TH1D("ChargeFrachisto", "higgs Charged Energy Fraction", 30, 0, 1);
     TH1D *btaghisto = new TH1D("btaghisto", "higgs jet btag", 2, 0, 1);
+    TH1D *zhdishisto = new TH1D("zhdishisto", "z and higgs jet distance", 30, 0, 4);
+    TH1D *truejethisto = new TH1D("truejethisto", "true higgs and higgs jet distance", 30, 0, 4);
 
     std::cout << "Start loop ever tree" << std::endl;
 
+    Int_t total = 0;
+    Int_t find = 0;
 
     for (Long64_t entry = 0; entry < nEntries; entry++) {
+	bool higgstag = false;
 	treeReader->ReadEntry(entry);
 
 	Int_t nJet = branchJet->GetEntries();
 	Int_t ne = branchElectron->GetEntries();
 	Int_t nMu = branchMuon->GetEntries();
+	Int_t nGenPar = branchGenPar->GetEntries();
 
 	TObject *object;
 
@@ -209,19 +216,56 @@ void llgg_sub(const char *inputFile) {
 	
 	z_ll = l1 + l2;
 	h_gg.SetPtEtaPhiM(hpt, heta, hphi, hmass);
-        if (z_ll.DeltaR(h_gg) < 0.8) {
+        if (z_ll.DeltaR(h_gg) < 1) {
 	    continue;
 	}
 	if (z_ll.M() < 76 or z_ll.M() > 106) {
 	    continue;
 	}
+	
 	Double_t lpairmass = z_ll.Mag();
 	Double_t gpairmass = h_gg.Mag();
-
+	
+	/*
 	if (gpairmass >= 85){
 	    continue;
 	}
-	std::cout << "z_ll mass: " << lpairmass << "; h_gg mass: " << gpairmass<< std::endl;
+	*/
+	GenParticle *trueHiggs;
+	GenParticle *genpar;
+	for (int gentry=0; gentry < nGenPar; ++gentry){
+	    genpar = (GenParticle *) branchGenPar -> At(gentry);
+	    if (genpar -> PID == 25){
+		GenParticle *D1;
+	        GenParticle *D2;
+		trueHiggs = (GenParticle *) branchGenPar -> At(gentry);
+		D1 = (GenParticle *) branchGenPar -> At(trueHiggs->D1);
+		D2 = (GenParticle *) branchGenPar -> At(trueHiggs->D2);
+		if (D1 -> PID == 21 and D2 -> PID == 21) {
+		    TLorentzVector HiggsP4 = trueHiggs -> P4();
+		    if (h_gg.DeltaR(D1 -> P4()) > 1.0) {
+			//std::cout << "Find D1 have distance " << h_gg.DeltaR(D1 -> P4()) << " from jet."<< std::endl;
+		    }
+		    if (h_gg.DeltaR(D2 -> P4()) > 1.0) {
+			//std::cout << "Find D2 have distance " << h_gg.DeltaR(D2 -> P4()) << " from jet."<< std::endl;
+		    }
+		    if (h_gg.DeltaR(D1 -> P4()) <= 1.0 and h_gg.DeltaR(D2 -> P4()) <= 1.0) {
+		        std::cout << "find higgs near jet with mass " << gpairmass << std::endl;
+			find++;
+			higgstag = true;
+			truejethisto -> Fill(h_gg.DeltaR(HiggsP4));
+			break;
+		    }
+		}
+	    }
+	}
+	//std::cout << "z_ll mass: " << lpairmass << "; h_gg mass: " << gpairmass<< std::endl;
+	total++;
+	/*
+	if (higgstag == false) {
+	    continue;
+	}
+	*/
 	Zmass -> Fill(lpairmass);
 	Hmass -> Fill(h_gg.Mag());
 	tau21 -> Fill(htau21);
@@ -231,9 +275,12 @@ void llgg_sub(const char *inputFile) {
 	pthisto -> Fill(hpt);
 	ChargeFrachisto -> Fill(hChargeFrac);
 	btaghisto -> Fill(hbtag);
+	zhdishisto -> Fill(h_gg.DeltaR(z_ll));
 	//std::cout << nJet << std::endl;
 	//std::cout <<  z_ll.DeltaR(h_gg) << std::endl;
     }
+    std::cout << "find total of " << total << " event which have bad mass reconstruction." << std::endl;
+    std::cout << "find " << find << " event which have bad mass reconstruction but do match wich higgs to gluglu." << std::endl;
     Int_t totalnum = Hmass -> GetEntries();
 
     TCanvas *totalcanvas = new TCanvas("totalcanvas", "Canvas", 1400, 1400, 1400, 1400);
@@ -292,4 +339,16 @@ void llgg_sub(const char *inputFile) {
     btagcanvas -> SetCanvasSize(1200,1200);
     btaghisto -> Draw("HIST");
     btagcanvas -> SaveAs("ZH_sig_btag.png");
+
+    TCanvas *zhdiscanvas = new TCanvas("zhdiscanvas", "Canvas", 1400, 1400, 1400, 1400);
+    zhdiscanvas -> SetWindowSize(1204,1228);
+    zhdiscanvas -> SetCanvasSize(1200,1200);
+    zhdishisto -> Draw("HIST");
+    zhdiscanvas -> SaveAs("ZH_sig_zhdis.png");
+
+    TCanvas *truejetdiscanvas = new TCanvas("truejetdiscanvas", "Canvas", 1400, 1400, 1400, 1400);
+    truejetdiscanvas -> SetWindowSize(1204,1228);
+    truejetdiscanvas -> SetCanvasSize(1200,1200);
+    truejethisto -> Draw("HIST");
+    truejetdiscanvas -> SaveAs("ZH_sig_truejet.png");
 }
