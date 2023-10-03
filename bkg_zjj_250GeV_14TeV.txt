@@ -1,7 +1,7 @@
 import model sm 
 define j = u s d c b u~ s~ d~ c~ b~ g
-generate p p > z j, (z > l+ l-)
-output bkg_zj_250GeV_14TeV
+generate p p > z j j, (z > l+ l-) / h
+output bkg_zjj_250GeV_14TeV
 launch
 shower=Pythia8
 set ptlllmin 250GeV

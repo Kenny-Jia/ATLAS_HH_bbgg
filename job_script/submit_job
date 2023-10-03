@@ -1,8 +1,8 @@
-export mg5dir=/eos/user/h/hjia/ATLAS_HH_bbgg/MG5_aMC_v3_5_0
+export mg5dir=/gpfs/slac/atlas/fs1/u/hjia625/ATLAS_H_gg/MG5_aMC_v3_5_1
 source /cvmfs/sft.cern.ch/lcg/views/LCG_101/x86_64-centos7-gcc11-opt/setup.sh
 export PYTHIA8DATA=$mg5dir/HEPTools/pythia8/share/Pythia8/xmldoc
 export LHAPDF_DATA_PATH=$mg5dir/HEPTools/lhapdf6_py3/bin
-export card=$mg5dir/../../repo_ATLAS_HH_bbgg
+export card=$mg5dir/../../repo_ATLAS_H_gg
 python $mg5dir/bin/mg5_aMC $card/sig_zh_250GeV_14TeV.txt
 python $mg5dir/bin/mg5_aMC $card/bkg_zhbb_250GeV_14TeV.txt
-python $mg5dir/bin/mg5_aMC $card/bkg_zj_250GeV_14TeV.txt
+python $mg5dir/bin/mg5_aMC $card/bkg_zjj_250GeV_14TeV.txt
