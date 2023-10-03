@@ -56,21 +56,20 @@ set ExecutionPath {
 
   GenJetFinder02
   GenJetFinder04
-  GenJetFinder05
   GenJetFinder08
   GenJetFinder10
+  GenJetFinder12
+  GenJetFinder15
 
   FastJetFinder02
   FastJetFinder04
-  FastJetFinder05
-  FastJetFinder06
   FastJetFinder08
   FastJetFinder10
+  FastJetFinder12
   FastJetFinder15
 
   CaloJetFinder02
   CaloJetFinder04
-  CaloJetFinder06
   CaloJetFinder08
   CaloJetFinder15
 
@@ -80,40 +79,23 @@ set ExecutionPath {
   TrackJetFinder15
 
   JetEnergyScale
-  Jet06EnergyScale
-  ParticleFlowJet05EnergyScale
-  ParticleFlowJet06EnergyScale
-  ParticleFlowJet10EnergyScale
-  ParticleFlowJet15EnergyScale
+  PFJet10EnergyScale
+  PFJet12EnergyScale
 
   JetFlavorAssociation
-  Jet06FlavorAssociation
-  ParticleFlowJet05FlavorAssociation
-  ParticleFlowJet06FlavorAssociation
-  ParticleFlowJet10FlavorAssociation
-  ParticleFlowJet15FlavorAssociation
-  GenJetFlavorAssociation
-  GenJetFlavorAssociation02
-  GenJetFlavorAssociation04
-  GenJetFlavorAssociation05
-  GenJetFlavorAssociation08
-  GenJetFlavorAssociation10
+  PFJet10FlavorAssociation
+  PFJet12FlavorAssociation
 
   BTagging
-  BTagging06
-  ParticleFlowBTagging05
-  ParticleFlowBTagging06
-  ParticleFlowBTagging10
-  ParticleFlowBTagging15
-  GenBTagging
-  GenBTagging02
-  GenBTagging04
-  GenBTagging05
-  GenBTagging08
-  GenBTagging10
+  GenJet10BTagging
+  GenJet12BTagging
+  PFJet10BTagging
+  PFJet12BTagging
   TauTagging
 
   UniqueObjectFinder
+  PFJet10UniqueObjectFinder
+  PFJet12UniqueObjectFinder
 
   ScalarHT
 
@@ -888,7 +870,7 @@ module FastJetFinder GenJetFinder {
   set JetAlgorithm 6
   set ParameterR 0.4
 
-  set JetPTMin 20.0
+  set JetPTMin 15.0
 }
 
 #########################
@@ -928,7 +910,7 @@ module FastJetFinder GenJetFinder02 {
   set SymmetryCutSoftDrop 0.1
   set R0SoftDrop 0.2
 
-  set JetPTMin 20.0
+  set JetPTMin 25.0
 }
 
 
@@ -956,38 +938,8 @@ module FastJetFinder GenJetFinder04 {
   set SymmetryCutSoftDrop 0.1
   set R0SoftDrop 0.4
 
-  set JetPTMin 20
+  set JetPTMin 25.0
 }
-
-#####################
-# MC truth jet finder
-#####################
-
-# TBC: is jet radius fine?
-
-module FastJetFinder GenJetFinder05 {
-  set InputArray NeutrinoFilter/filteredParticles
-
-  set OutputArray jets
-
-  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
-  set JetAlgorithm 6
-  set ParameterR 0.5
-
-  set ComputeNsubjettiness 1
-  set Beta 1.0
-  set AxisMode 4
-
-  set ComputeSoftDrop 1
-  set BetaSoftDrop 0.0
-  set SymmetryCutSoftDrop 0.1
-  set R0SoftDrop 0.5
-
-  set JetPTMin 20
-}
-
-
-
 #####################
 # MC truth jet finder
 #####################
@@ -1012,14 +964,8 @@ module FastJetFinder GenJetFinder08 {
   set SymmetryCutSoftDrop 0.1
   set R0SoftDrop 0.8
 
-  set JetPTMin 20.0
+  set JetPTMin 25.0
 }
-
-#####################
-# MC truth jet finder
-#####################
-
-# TBC: is jet radius fine?
 
 module FastJetFinder GenJetFinder10 {
   set InputArray NeutrinoFilter/filteredParticles
@@ -1032,13 +978,70 @@ module FastJetFinder GenJetFinder10 {
 
   set ComputeNsubjettiness 1
   set Beta 1.0
-  set AxisMode 3 
+  set AxisMode 3
 
   set ComputeTrimming 1
   set RTrim 0.2
-  set PtFracTrim 0.05
+  set ptFracTrim 0.05
 
-  set JetPTMin 200.0
+  #set ComputeSoftDrop 1
+  #set BetaSoftDrop 0.0
+  #set SymmetryCutSoftDrop 0.1
+  #set R0SoftDrop 0.8
+
+  set JetPTMin 175.0
+}
+
+module FastJetFinder GenJetFinder12 {
+  set InputArray NeutrinoFilter/filteredParticles
+
+  set OutputArray jets
+
+  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
+  set JetAlgorithm 6
+  set ParameterR 1.2
+
+  set ComputeNsubjettiness 1
+  set Beta 1.0
+  set AxisMode 3
+
+  set ComputeTrimming 1
+  set RTrim 0.2
+  set ptFracTrim 0.05
+
+  #set ComputeSoftDrop 1
+  #set BetaSoftDrop 0.0
+  #set SymmetryCutSoftDrop 0.1
+  #set R0SoftDrop 0.8
+
+  set JetPTMin 175.0
+}
+
+#####################
+# MC truth jet finder
+#####################
+
+# TBC: is jet radius fine?
+
+module FastJetFinder GenJetFinder15 {
+  set InputArray NeutrinoFilter/filteredParticles
+
+  set OutputArray jets
+
+  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
+  set JetAlgorithm 6
+  set ParameterR 1.5
+
+  set ComputeNsubjettiness 1
+  set Beta 1.0
+  set AxisMode 4
+
+  set ComputeSoftDrop 1
+  set BetaSoftDrop 0.0
+  set SymmetryCutSoftDrop 0.1
+  set R0SoftDrop 1.5
+
+  set JetPTMin 25.0
 }
 
 
@@ -1064,7 +1067,7 @@ module FastJetFinder FastJetFinder02 {
   set SymmetryCutSoftDrop 0.1
   set R0SoftDrop 0.2
 
-  set JetPTMin 20.0
+  set JetPTMin 25.0
 }
 
 ##################
@@ -1089,60 +1092,9 @@ module FastJetFinder FastJetFinder04 {
   set SymmetryCutSoftDrop 0.1
   set R0SoftDrop 0.4
 
-  set JetPTMin 20.0
+  set JetPTMin 25.0
 }
-##################
-# Fast Jet finder
-##################
 
-module FastJetFinder FastJetFinder05 {
-  set InputArray EFlowMerger/eflow
-
-  set OutputArray jets
-
-  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
-  set JetAlgorithm 6
-  set ParameterR 0.5
-
-  set ComputeNsubjettiness 1
-  set Beta 1.0
-  set AxisMode 4
-
-  set ComputeSoftDrop 1
-  set BetaSoftDrop 0.0
-  set SymmetryCutSoftDrop 0.1
-  set R0SoftDrop 0.5
-  
-  set ComputeTrimming 1
-  set RTrim 0.2
-  set PtFracTrim 0.05
-
-  set JetPTMin 20.0
-}
-##################
-# Fast Jet finder
-##################
-
-module FastJetFinder FastJetFinder06 {
-  set InputArray EFlowMerger/eflow
-
-  set OutputArray jets
-
-  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
-  set JetAlgorithm 6
-  set ParameterR 0.6
-
-  set ComputeNsubjettiness 1
-  set Beta 1.0
-  set AxisMode 4
-
-  set ComputeSoftDrop 1
-  set BetaSoftDrop 0.0
-  set SymmetryCutSoftDrop 0.1
-  set R0SoftDrop 0.6
-
-  set JetPTMin 20.0
-}
 
 ##################
 # Fast Jet finder
@@ -1169,6 +1121,7 @@ module FastJetFinder FastJetFinder08 {
   set JetPTMin 25.0
 }
 
+
 ##################
 # Fast Jet finder
 ##################
@@ -1184,13 +1137,48 @@ module FastJetFinder FastJetFinder10 {
 
   set ComputeNsubjettiness 1
   set Beta 1.0
-  set AxisMode 3 
+  set AxisMode 3
 
   set ComputeTrimming 1
   set RTrim 0.2
   set PtFracTrim 0.05
 
-  set JetPTMin 200.0
+  #set ComputeSoftDrop 1
+  #set BetaSoftDrop 0.0
+  #set SymmetryCutSoftDrop 0.1
+  #set R0SoftDrop 0.8
+
+  set JetPTMin 175.0
+}
+
+
+##################
+# Fast Jet finder
+##################
+
+module FastJetFinder FastJetFinder12 {
+  set InputArray EFlowMerger/eflow
+
+  set OutputArray jets
+
+  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
+  set JetAlgorithm 6
+  set ParameterR 1.2
+
+  set ComputeNsubjettiness 1
+  set Beta 1.0
+  set AxisMode 3
+
+  set ComputeTrimming 1
+  set RTrim 0.2
+  set PtFracTrim 0.05
+
+  #set ComputeSoftDrop 1
+  #set BetaSoftDrop 0.0
+  #set SymmetryCutSoftDrop 0.1
+  #set R0SoftDrop 0.8
+
+  set JetPTMin 175.0
 }
 
 ##################
@@ -1208,11 +1196,12 @@ module FastJetFinder FastJetFinder15 {
 
   set ComputeNsubjettiness 1
   set Beta 1.0
-  set AxisMode 3 
+  set AxisMode 4
 
-  set ComputeTrimming 1
-  set RTrim 0.2
-  set PtFracTrim 0.05
+  set ComputeSoftDrop 1
+  set BetaSoftDrop 0.0
+  set SymmetryCutSoftDrop 0.1
+  set R0SoftDrop 1.5
 
   set JetPTMin 25.0
 }
@@ -1240,7 +1229,7 @@ module FastJetFinder CaloJetFinder02 {
   set SymmetryCutSoftDrop 0.1
   set R0SoftDrop 0.2
 
-  set JetPTMin 20.0
+  set JetPTMin 25.0
 }
 
 ##################
@@ -1265,34 +1254,8 @@ module FastJetFinder CaloJetFinder04 {
   set SymmetryCutSoftDrop 0.1
   set R0SoftDrop 0.4
 
-  set JetPTMin 20.0
+  set JetPTMin 25.0
 }
-
-##################
-# Fast Jet finder
-##################
-
-module FastJetFinder CaloJetFinder06 {
-  set InputArray Calorimeter/towers
-
-  set OutputArray jets
-
-  # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
-  set JetAlgorithm 6
-  set ParameterR 0.6
-
-  set ComputeNsubjettiness 1
-  set Beta 1.0
-  set AxisMode 4
-
-  set ComputeSoftDrop 1
-  set BetaSoftDrop 0.0
-  set SymmetryCutSoftDrop 0.1
-  set R0SoftDrop 0.6
-
-  set JetPTMin 20.0
-}
-
 
 
 ##################
@@ -1317,7 +1280,7 @@ module FastJetFinder CaloJetFinder08 {
   set SymmetryCutSoftDrop 0.1
   set R0SoftDrop 0.8
 
-  set JetPTMin 20.0
+  set JetPTMin 25.0
 }
 
 ##################
@@ -1460,58 +1423,11 @@ module EnergyScale JetEnergyScale {
   set ScaleFormula {1.00}
 }
 
-
-
 ##################
 # Jet Energy Scale
 ##################
 
-module EnergyScale Jet06EnergyScale {
-  set InputArray CaloJetFinder06/jets
-  set OutputArray jets
-
- # scale formula for jets
-  set ScaleFormula {1.00}
-}
-
-
-
-
-##################
-# Jet Energy Scale
-##################
-
-module EnergyScale ParticleFlowJet05EnergyScale {
-  set InputArray FastJetFinder05/jets
-  set OutputArray jets
-
- # scale formula for jets
-  set ScaleFormula {1.00}
-}
-
-
-
-
-
-##################
-# Jet Energy Scale
-##################
-
-module EnergyScale ParticleFlowJet06EnergyScale {
-  set InputArray FastJetFinder06/jets
-  set OutputArray jets
-
- # scale formula for jets
-  set ScaleFormula {1.00}
-}
-
-
-
-##################
-# Jet Energy Scale
-##################
-
-module EnergyScale ParticleFlowJet10EnergyScale {
+module EnergyScale PFJet10EnergyScale {
   set InputArray FastJetFinder10/jets
   set OutputArray jets
 
@@ -1519,18 +1435,18 @@ module EnergyScale ParticleFlowJet10EnergyScale {
   set ScaleFormula {1.00}
 }
 
+
 ##################
 # Jet Energy Scale
 ##################
 
-module EnergyScale ParticleFlowJet15EnergyScale {
-  set InputArray FastJetFinder15/jets
+module EnergyScale PFJet12EnergyScale {
+  set InputArray FastJetFinder12/jets
   set OutputArray jets
 
  # scale formula for jets
   set ScaleFormula {1.00}
 }
-
 
 ########################
 # Jet Flavor Association
@@ -1543,150 +1459,48 @@ module JetFlavorAssociation JetFlavorAssociation {
   set ParticleLHEFInputArray Delphes/allParticlesLHEF
   set JetInputArray JetEnergyScale/jets
 
-  set DeltaR 0.4
-  set PartonPTMin 5.0
-  set PartonEtaMax 4.0
-
-}
-
-module JetFlavorAssociation Jet06FlavorAssociation {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray Jet06EnergyScale/jets
-
-  set DeltaR 0.6
-  set PartonPTMin 5.0
-  set PartonEtaMax 4.0
-
-}
-module JetFlavorAssociation ParticleFlowJet05FlavorAssociation {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray ParticleFlowJet05EnergyScale/jets
-
   set DeltaR 0.5
   set PartonPTMin 5.0
   set PartonEtaMax 4.0
 
 }
-module JetFlavorAssociation ParticleFlowJet06FlavorAssociation {
+
+########################
+# Jet Flavor Association
+########################
+
+module JetFlavorAssociation PFJet10FlavorAssociation {
 
   set PartonInputArray Delphes/partons
   set ParticleInputArray Delphes/allParticles
   set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray ParticleFlowJet06EnergyScale/jets
-
-  set DeltaR 0.6
-  set PartonPTMin 5.0
-  set PartonEtaMax 4.0
-
-}
-module JetFlavorAssociation ParticleFlowJet10FlavorAssociation {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray ParticleFlowJet10EnergyScale/jets
+  set JetInputArray PFJet10EnergyScale/jets
 
   set DeltaR 1.0
   set PartonPTMin 5.0
   set PartonEtaMax 4.0
 
 }
-module JetFlavorAssociation ParticleFlowJet15FlavorAssociation {
+
+########################
+# Jet Flavor Association
+########################
+
+module JetFlavorAssociation PFJet12FlavorAssociation {
 
   set PartonInputArray Delphes/partons
   set ParticleInputArray Delphes/allParticles
   set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray ParticleFlowJet15EnergyScale/jets
+  set JetInputArray PFJet12EnergyScale/jets
 
-  set DeltaR 1.5
+  set DeltaR 1.2
   set PartonPTMin 5.0
   set PartonEtaMax 4.0
 
 }
-module JetFlavorAssociation GenJetFlavorAssociation {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray GenJetFinder/jets
-
-  set DeltaR 0.4
-  set PartonPTMin 5.0
-  set PartonEtaMax 2.5 
-
-}
-module JetFlavorAssociation GenJetFlavorAssociation02 {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray GenJetFinder02/jets
-
-  set DeltaR 0.2
-  set PartonPTMin 5.0
-  set PartonEtaMax 2.5 
-
-}
-module JetFlavorAssociation GenJetFlavorAssociation04 {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray GenJetFinder04/jets
-
-  set DeltaR 0.4
-  set PartonPTMin 5.0
-  set PartonEtaMax 2.5 
-
-}
-module JetFlavorAssociation GenJetFlavorAssociation05 {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray GenJetFinder05/jets
-
-  set DeltaR 0.5
-  set PartonPTMin 5.0
-  set PartonEtaMax 2.5 
-
-}
-module JetFlavorAssociation GenJetFlavorAssociation08 {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray GenJetFinder08/jets
-
-  set DeltaR 0.8
-  set PartonPTMin 5.0
-  set PartonEtaMax 2.5 
-
-}
-module JetFlavorAssociation GenJetFlavorAssociation10 {
-
-  set PartonInputArray Delphes/partons
-  set ParticleInputArray Delphes/allParticles
-  set ParticleLHEFInputArray Delphes/allParticlesLHEF
-  set JetInputArray GenJetFinder10/jets
-
-  set DeltaR 1.0
-  set PartonPTMin 5.0
-  set PartonEtaMax 2.5 
-
-}
-
-
 
 ##################
-# Photon isolation
-##################
+# Photon isolation #################
 
 # TBC: check values for iso cuts
 
@@ -1928,398 +1742,11 @@ module BTagging BTagging {
 
 }
 
-module BTagging BTagging06 {
-  set JetInputArray Jet06EnergyScale/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-
-module BTagging ParticleFlowBTagging05 {
-  set JetInputArray ParticleFlowJet05EnergyScale/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-module BTagging ParticleFlowBTagging06 {
-  set JetInputArray ParticleFlowJet06EnergyScale/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-module BTagging ParticleFlowBTagging10 {
-  set JetInputArray ParticleFlowJet10EnergyScale/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-module BTagging ParticleFlowBTagging15 {
-  set JetInputArray ParticleFlowJet15EnergyScale/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-module BTagging GenBTagging {
-  set JetInputArray GenJetFinder/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-module BTagging GenBTagging02 {
-  set JetInputArray GenJetFinder02/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-module BTagging GenBTagging04 {
-  set JetInputArray GenJetFinder04/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-module BTagging GenBTagging05 {
-  set JetInputArray GenJetFinder05/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-module BTagging GenBTagging08 {
-  set JetInputArray GenJetFinder08/jets
-
-  set BitNumber 0
-
-  add EfficiencyFormula {0} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {4} {
-
-  (pt <= 10.0)                       * (0.00) +
-  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
-  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
-  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
-  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
-  (abs(eta) > 4.0) * (0.00)}
-
-  add EfficiencyFormula {5} {
-
-  (pt <= 10.0)                                                       * (0.00) +
-  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
-  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
-  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
-  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
-  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
-  (abs(eta) >= 4.0) * (0.00)}
-
-}
-module BTagging GenBTagging10 {
+###########
+# b-tagging
+###########
+
+module BTagging GenJet10BTagging {
   set JetInputArray GenJetFinder10/jets
 
   set BitNumber 0
@@ -2358,7 +1785,135 @@ module BTagging GenBTagging10 {
   (abs(eta) >= 4.0) * (0.00)}
 
 }
+###########
+# b-tagging
+###########
 
+module BTagging GenJet12BTagging {
+  set JetInputArray GenJetFinder12/jets
+
+  set BitNumber 0
+
+  add EfficiencyFormula {0} {
+
+  (pt <= 10.0)                       * (0.00) +
+  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
+  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 4.0) * (0.00)}
+
+  add EfficiencyFormula {4} {
+
+  (pt <= 10.0)                       * (0.00) +
+  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
+  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 4.0) * (0.00)}
+
+  add EfficiencyFormula {5} {
+
+  (pt <= 10.0)                                                       * (0.00) +
+  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
+  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
+  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
+  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
+  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
+  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
+  (abs(eta) >= 4.0) * (0.00)}
+
+}
+###########
+# b-tagging
+###########
+
+module BTagging PFJet10BTagging {
+  set JetInputArray PFJet10EnergyScale/jets
+
+  set BitNumber 0
+
+  add EfficiencyFormula {0} {
+
+  (pt <= 10.0)                       * (0.00) +
+  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
+  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 4.0) * (0.00)}
+
+  add EfficiencyFormula {4} {
+
+  (pt <= 10.0)                       * (0.00) +
+  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
+  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 4.0) * (0.00)}
+
+  add EfficiencyFormula {5} {
+
+  (pt <= 10.0)                                                       * (0.00) +
+  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
+  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
+  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
+  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
+  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
+  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
+  (abs(eta) >= 4.0) * (0.00)}
+
+}
+###########
+# b-tagging
+###########
+
+module BTagging PFJet12BTagging {
+  set JetInputArray PFJet12EnergyScale/jets
+
+  set BitNumber 0
+
+  add EfficiencyFormula {0} {
+
+  (pt <= 10.0)                       * (0.00) +
+  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.01) + \
+  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.01)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.00) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.0075) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.0075)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 4.0) * (0.00)}
+
+  add EfficiencyFormula {4} {
+
+  (pt <= 10.0)                       * (0.00) +
+  (abs(eta) < 2.5)                   * (pt > 10.0 && pt < 500)      * (0.10) + \
+  (abs(eta) < 2.5)                   * (pt > 500.0 && pt < 5000.0) * (0.10)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5)                   * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.06) + \
+  (abs(eta) > 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.06)*(1.0 - pt/5000.) + \
+  (abs(eta) < 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + \
+  (abs(eta) > 4.0) * (0.00)}
+
+  add EfficiencyFormula {5} {
+
+  (pt <= 10.0)                                                       * (0.00) +
+  (abs(eta) < 2.5)                    * (pt > 10.0 && pt < 500)      * (0.75) + 
+  (abs(eta) < 2.5)                    * (pt > 500.0 && pt < 5000.0) * (0.75)*(1.0 - pt/5000.) + 
+  (abs(eta) < 2.5)                    * (pt > 5000.0)               * (0.000) + 
+  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 10.0 && pt < 500)      * (0.60) + 
+  (abs(eta) >= 2.5 && abs(eta) < 4.0) * (pt > 500.0 && pt < 5000.0) * (0.60)*(1.0 - pt/5000.) + 
+  (abs(eta) <= 2.5 && abs(eta) < 4.0) * (pt > 5000.0)               * (0.000) + 
+  (abs(eta) >= 4.0) * (0.00)}
+
+}
 
 
 #############
@@ -2423,7 +1978,34 @@ module UniqueObjectFinder UniqueObjectFinder {
   add InputArray PhotonEfficiency/photons photons
   add InputArray ElectronEfficiency/electrons electrons
   add InputArray MuonEfficiency/muons muons
-  add InputArray ParticleFlowJet10EnergyScale/jets jets
+  add InputArray JetEnergyScale/jets jets
+
+}
+
+#####################################################
+# Find uniquely identified photons/electrons/tau/jets
+#####################################################
+
+module UniqueObjectFinder PFJet10UniqueObjectFinder {
+# earlier arrays take precedence over later ones
+# add InputArray InputArray OutputArray
+  add InputArray PhotonEfficiency/photons photons
+  add InputArray ElectronEfficiency/electrons electrons
+  add InputArray MuonEfficiency/muons muons
+  add InputArray PFJet10EnergyScale/jets jets
+}
+
+#####################################################
+# Find uniquely identified photons/electrons/tau/jets
+#####################################################
+
+module UniqueObjectFinder PFJet12UniqueObjectFinder {
+# earlier arrays take precedence over later ones
+# add InputArray InputArray OutputArray
+  add InputArray PhotonEfficiency/photons photons
+  add InputArray ElectronEfficiency/electrons electrons
+  add InputArray MuonEfficiency/muons muons
+  add InputArray PFJet12EnergyScale/jets jets
 
 }
 
@@ -2446,32 +2028,31 @@ module TreeWriter TreeWriter {
   add Branch ECal/eflowPhotons EFlowPhoton Tower
   add Branch HCal/eflowNeutralHadrons EFlowNeutralHadron Tower
 
-  add Branch UniqueObjectFinder/photons Photon Photon
-  add Branch UniqueObjectFinder/electrons Electron Electron
-  add Branch UniqueObjectFinder/muons Muon Muon
-  add Branch UniqueObjectFinder/jets Jet Jet
-  add Branch Jet06EnergyScale/jets Jet06 Jet
-  add Branch ParticleFlowJet05EnergyScale/jets PFJet05 Jet
-  add Branch ParticleFlowJet06EnergyScale/jets PFJet06 Jet
-  add Branch ParticleFlowJet10EnergyScale/jets PFJet10 Jet
-  add Branch ParticleFlowJet15EnergyScale/jets PFJet15 Jet
+  add Branch PFJet10UniqueObjectFinder/photons Photon Photon
+  add Branch PFJet10UniqueObjectFinder/electrons Electron Electron
+  add Branch PFJet10UniqueObjectFinder/muons Muon Muon
+  add Branch PFJet10UniqueObjectFinder/jets UniqueJet Jet
+  add Branch PFJet12UniqueObjectFinder/jets UniqueJet12 Jet
 
   add Branch GenJetFinder02/jets GenJet02 Jet
   add Branch GenJetFinder04/jets GenJet04 Jet
-  add Branch GenJetFinder05/jets GenJet05 Jet
   add Branch GenJetFinder08/jets GenJet08 Jet
   add Branch GenJetFinder10/jets GenJet10 Jet
+  add Branch GenJetFinder12/jets GenJet12 Jet
+  add Branch GenJetFinder15/jets GenJet15 Jet
 
   add Branch FastJetFinder02/jets ParticleFlowJet02 Jet
   add Branch FastJetFinder04/jets ParticleFlowJet04 Jet
-  add Branch FastJetFinder06/jets ParticleFlowJet06 Jet
   add Branch FastJetFinder08/jets ParticleFlowJet08 Jet
   add Branch FastJetFinder10/jets ParticleFlowJet10 Jet
+  add Branch FastJetFinder12/jets ParticleFlowJet12 Jet
   add Branch FastJetFinder15/jets ParticleFlowJet15 Jet
+
+  add Branch PFJet10EnergyScale/jets PFJet10 Jet
+  add Branch PFJet12EnergyScale/jets PFJet12 Jet
 
   add Branch CaloJetFinder02/jets CaloJet02 Jet
   add Branch CaloJetFinder04/jets CaloJet04 Jet
-  add Branch CaloJetFinder06/jets CaloJet06 Jet
   add Branch CaloJetFinder08/jets CaloJet08 Jet
   add Branch CaloJetFinder15/jets CaloJet15 Jet
 
