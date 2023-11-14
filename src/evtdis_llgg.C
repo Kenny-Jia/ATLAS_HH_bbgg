@@ -115,6 +115,10 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     TGraph *zscat = new TGraph(1, zeta, zphi);
     TGraph *gluonscat = new TGraph(2, deta, dphi);
     TGraph *lepscat = new TGraph(2, lepeta, lepphi);
+    
+    if ((deta[0]-deta[1])*(deta[0]-deta[1]) + (dphi[0]-dphi[1])*(dphi[0]-dphi[1]) >= 1) {
+	std::cout << "!!!!!!!!!gluon pair far from each other!!!!!!!!!!" << std::endl;
+    }
 
     std::cout << "First lepton at " << lep1P4.Eta()<< ", " << lep1P4.Phi() << std::endl;
     std::cout << "Second lepton at " << lep2P4.Eta()<< ", " << lep2P4.Phi() << std::endl;
@@ -207,7 +211,7 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     const Double_t* consttrackphi = trackphi;
     TGraph *towerscat = new TGraph(towersize, consttowereta, consttowerphi);
     TGraph *trackscat = new TGraph(tracksize, consttracketa, consttrackphi);
-    TH2D *towerhisto = new TH2D("towerhisto", "towerhisto", )
+    //TH2D *towerhisto = new TH2D("towerhisto", "towerhisto", )
 
     auto mg = new TMultiGraph();
 
