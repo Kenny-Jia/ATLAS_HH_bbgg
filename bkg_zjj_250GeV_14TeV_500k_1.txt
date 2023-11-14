@@ -1,0 +1,20 @@
+import model sm 
+define j = u s d c b u~ s~ d~ c~ b~ g
+generate p p > z j j, (z > l+ l-) / h
+output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjj_250GeV_14TeV_500k_1
+launch
+shower=Pythia8
+set ptlllmin 250GeV
+set etaj 2.5
+set etab 2.5
+set ptj 20
+set ptb 20
+set etajmin -2.5
+set etabmin -2.5
+set mh 125.0
+set wh 0.004
+set ebeam1 7000
+set ebeam2 7000
+set nevents 500000
+set iseed 1823213
+0

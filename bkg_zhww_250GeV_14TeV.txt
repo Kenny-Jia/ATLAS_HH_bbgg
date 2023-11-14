@@ -1,9 +1,11 @@
-import model sm
-define j = u s c d b u~ s~ c~ d~ b~ g
-generate p p > z j j, (z > l+ l-)
-output bkg_zllj_14TeV
+import model sm-full 
+define q = u c s d b u~ c~ s~ d~ b~
+generate p p > z h, (z > l+ l-), (h > w+ w-, w+ > q q, w- > q q)
+output bkg_zhww_250GeV_14TeV
 launch
 shower=Pythia8
+set hard_survey 2
+set ptllmin 250
 set etaj 2.5
 set etab 2.5
 set ptj 20

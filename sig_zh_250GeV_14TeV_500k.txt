@@ -1,8 +1,9 @@
 import model heft
 generate p p > z h, (z > l+ l-), (h > g g)
-output sig_zh_14TeV
+output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/sig_zh_250GeV_14TeV_500k
 launch
 shower=Pythia8
+set ptllmin 250
 set etaj 2.5
 set etab 2.5
 set ptj 20
@@ -13,6 +14,6 @@ set mh 125.0
 set wh 0.004
 set ebeam1 7000
 set ebeam2 7000
-set nevents 100000
-set iseed 1823211
+set nevents 500000
+set iseed 1823212
 0
