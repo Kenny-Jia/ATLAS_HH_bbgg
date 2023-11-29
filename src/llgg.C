@@ -21,8 +21,107 @@
 #include <TLorentzVector.h>
 #include <TLatex.h>
 #include <time.h>
+#include <TVector3.h>
+#include <vector>
+#include <algorithm>
+#include <cmath>
+#include <utility>
 #endif
 	
+bool compareTVector3(const TVector3& a, const TVector3& b) {
+    return a.Mag() > b.Mag();
+}
+
+std::pair<double, double> calculateThrust(const std::vector<TLorentzVector>& momenta) {
+    double t;
+    TVector3 totalMomentum(0, 0, 0);
+    for (const auto& particle : momenta) {
+	totalMomentum += particle.Vect();
+    }
+
+    double totalEnergy = 0;
+    for (const auto& particle : momenta) {
+	totalEnergy += particle.E();
+    }
+    TVector3 beta = -totalMomentum * (1.0 / totalEnergy);
+    
+    std::vector<TVector3> momentaCp;
+    for (const auto& particle : momenta) {
+	TLorentzVector tmpPar = particle;
+	tmpPar.Boost(beta);
+	momentaCp.push_back(tmpPar.Vect());
+    }
+    unsigned  int n = momentaCp.size();
+    if (n == 0) return std::make_pair(0.0, 0.0);
+    if (n == 1) return std::make_pair(1.0, 0.0);
+
+    assert(n >= 3);
+    n = 3;
+    if (momentaCp.size() == 3) n = 3;
+
+    std::vector<TVector3> tvec;
+    std::vector<double> tval;
+    TVector3 taxis(0, 0, 0);
+    std::sort(momentaCp.begin(), momentaCp.end(), compareTVector3);
+
+    /*
+    t = 0;
+    TVector3 tmpAxis = momentaCp[0].Unit();
+
+    for (unsigned int k = 0; k < momentaCp.size(); k++) {
+	t += fabs(tmpAxis.Dot(momentaCp[k]));
+    }
+    */
+    
+    for (unsigned int i = 0; i < pow(2, n - 1); i++) {
+	TVector3 foo(0, 0, 0);
+	int sign = i;
+	for (unsigned int k = 0; k < n; k++) {
+	    (sign % 2) == 1 ? foo += momentaCp[k] : foo -= momentaCp[k];
+	    sign /= 2;
+	}
+	foo = foo.Unit();
+
+	double diff = 999.;
+	while (diff > 1e-5) {
+	    TVector3 foobar(0, 0, 0);
+	    for (unsigned int k = 0; k < momentaCp.size(); k++) {
+		foo.Dot(momentaCp[k]) > 0 ? foobar += momentaCp[k] : foobar -= momentaCp[k];
+	    }
+	    diff = (foo - foobar.Unit()).Mag();
+	    foo = foobar.Unit();
+	}
+
+	t = 0.;
+	for (unsigned int k = 0; k < momentaCp.size(); k++) {
+	    t += fabs(foo.Dot(momentaCp[k]));
+	}
+
+	tval.push_back(t);
+	tvec.push_back(foo);
+    }
+    
+    double norm = 0.0;
+    for (const auto& p : momentaCp) {
+        norm += p.Mag();
+    }
+    
+    t = 0.;
+    for (unsigned int i = 0; i < tvec.size(); i++) {
+        if (tval[i] > t) {
+     	    t = tval[i];
+	    std::cout << "new biggest thrust = " << t/norm << std::endl;
+	    taxis = tvec[i];
+	}
+    }
+    double tm;
+    tm = 0.;
+    for (unsigned int k = 0; k < momentaCp.size(); k++) {
+        tm += fabs(taxis.Cross(momentaCp[k]).Mag());
+    }
+    return std::make_pair(t / norm, tm / norm);
+}
+
 void llgg(const char *inputFile) {
 
     std::cout << "loading Delphes library" << std::endl;
@@ -59,6 +158,13 @@ void llgg(const char *inputFile) {
     TClonesArray *branchMET = treeReader->UseBranch("MissingET");
     TClonesArray *branchHT = treeReader->UseBranch("ScalarHT");
 
+    TClonesArray *branchTrack = treeReader->UseBranch("Track");
+    TClonesArray *branchTower = treeReader->UseBranch("Tower");
+    TClonesArray *branchEFlowTrack = treeReader->UseBranch("EFlowTrack");
+    TClonesArray *branchEFlowPhoton = treeReader->UseBranch("EFlowPhoton");
+    TClonesArray *branchEFlowNeutralHadron = treeReader->UseBranch("EFlowNeutralHadron");
+
+
     TH1D *Zmass = new TH1D("Zmass", "lepton pair invariant mass", 100, 30, 220);
     TH1D *Hmass = new TH1D("Hmass", "jet pair invariant mass", 50, 30, 220);
     TH1D *tau21 = new TH1D("tau21", "higgs tau21", 30, 0, 1);
@@ -74,6 +180,8 @@ void llgg(const char *inputFile) {
     TH1D *METhDishisto = new TH1D("METhDishisto", "MissingET higgs Dis", 30, 0, 6.28);
     TH1D *nsmallhisto = new TH1D("nsmallhisto", "number of small jet", 4, 0, 4);
     TH1D *nsmallmasshisto = new TH1D("nsmallmasshisto", "number of small jet", 50, 0, 200);
+    TH1D *thrusthisto = new TH1D("thrusthisto", "jet thrust", 100, 0.5, 1);
+    TH1D *thrustmhisto = new TH1D("thrustmhisto", "jet thrust minor", 100, 0, 0.8);
 
     std::cout << "Start loop ever tree" << std::endl;
 
@@ -226,37 +334,12 @@ void llgg(const char *inputFile) {
 	hNCharged = hjet -> NCharged;
 	hChargeFrac = hjet -> ChargedEnergyFraction;
 	hbtag = hjet -> BTag;
-
-	
-	
+		
 	if (hpt < 250){
 	    continue;
 	}
+
 	
-	// Uncomment to get jet constituents info
-	/*
-	for(int i = 0; i < hjet->Constituents.GetEntriesFast(); ++i) {
-	    object = hjet->Constituents.At(i);
-	    if(object == 0) continue;
-	        if(object->IsA() == Tower::Class()) {
-	  	    Tower *tower;
-		    tower = (Tower*) object;
-		    std::cout << "is tower with Eem = " << tower->Eem << "and Ehad = " <<tower->Ehad;
-	    	}
-	    	if(object->IsA() == GenParticle::Class()) {
-		    std::cout << "is genpar";
-	    	} 
-		if(object->IsA() == Track::Class()) {
-		    Track *track;
-		    track = (Track*) object;
-		    std::cout << "is track";
-		}
-	    	if(object->IsA() == Candidate::Class()) {
-		    std::cout << "is candidate";
-	    	}
-	    	std::cout << std::endl;
-	}
-	*/
 	TLorentzVector z_ll;
 	z_ll.SetPtEtaPhiM(0, 0, 0, 0);
 	TLorentzVector h_gg;
@@ -270,7 +353,7 @@ void llgg(const char *inputFile) {
 	if (z_ll.M() < 76 or z_ll.M() > 106) {
 	    continue;
 	}
-	if (h_gg.M() < 0 or h_gg.M() > 60) {
+	if (h_gg.M() < 0 or h_gg.M() > 250) {
 	    continue;
 	}
 	Double_t lpairmass = z_ll.Mag();
@@ -306,6 +389,7 @@ void llgg(const char *inputFile) {
 	    continue;
 	}
 	*/
+
 	//true tag *********************************************
 	
 	MissingET *met;
@@ -361,11 +445,10 @@ void llgg(const char *inputFile) {
 	}
 	*/
 	//std::cout << "z_ll mass: " << lpairmass << "; h_gg mass: " << gpairmass<< std::endl;
-	total++;
 	
 	
 	if (higgstag == false) {
-	    continue;
+	    //continue;
 	}
 	
 	/*
@@ -374,6 +457,41 @@ void llgg(const char *inputFile) {
 	    std::cout << "weird:" << hbtag << " at event " << entry <<std::endl;
 	}
 	*/
+
+// Uncomment to get jet constituents info
+        std::vector<TLorentzVector> particlesArr;	
+	for(int i = 0; i < hjet->Constituents.GetEntriesFast(); ++i) {
+	    object = hjet->Constituents.At(i);
+	    if(object == 0) continue;
+	        if(object->IsA() == Tower::Class()) {
+	  	    Tower *tower = (Tower*) object;
+		    TLorentzVector p4 = tower->P4();
+		    particlesArr.push_back(p4); 
+	    	}
+		/*
+	    	if(object->IsA() == GenParticle::Class()) {
+		    std::cout << "is genpar";
+	    	}
+	        */	
+		if(object->IsA() == Track::Class()) {
+		    Track *track = (Track*) object;
+		    TLorentzVector p4 = track->P4();
+		    particlesArr.push_back(p4);
+		}
+		/*
+	    	if(object->IsA() == Candidate::Class()) {
+		    std::cout << "is candidate";
+	    	}
+		*/
+	}
+
+	std::pair<double, double> thrust_result = calculateThrust(particlesArr);
+	double thrust = thrust_result.first;
+	double thrust_minor = thrust_result.second;
+	std::cout << "Thrust: " << thrust << std::endl;
+	std::cout << "Thrust_minor: " << thrust_minor << std::endl;
+
+	total++;
 	//std::cout << "event number " << entry << std::endl;
 	Zmass -> Fill(lpairmass);
 	Hmass -> Fill(h_gg.Mag());
@@ -384,11 +502,13 @@ void llgg(const char *inputFile) {
 	pthisto -> Fill(hpt);
 	ChargeFrachisto -> Fill(hChargeFrac);
 	btaghisto -> Fill(hjet->BTag);
-	//zhdishisto -> Fill(h_gg.DeltaR(z_ll));
+	zhdishisto -> Fill(h_gg.DeltaR(z_ll));
 	//METhisto -> Fill(met->MET);
 	//METhDishisto -> Fill(h_gg.DeltaR(met->P4()));
 	nsmallhisto -> Fill(nsmallB);
 	nsmallmasshisto -> Fill(Summass/nsmallB);
+	thrusthisto -> Fill(thrust);
+	thrustmhisto -> Fill(thrust_minor);
 	std::cout << "event number" << entry << " hmass = " << h_gg.Mag() << std::endl;
 	//std::cout << nJet << std::endl;
 	//std::cout <<  z_ll.DeltaR(h_gg) << std::endl;
@@ -459,13 +579,14 @@ void llgg(const char *inputFile) {
     btagcanvas -> SetCanvasSize(1200,1200);
     btaghisto -> Draw("HIST");
     btagcanvas -> SaveAs((channelName + "_anti_btag.png").c_str());
-/*
+
     TCanvas *zhdiscanvas = new TCanvas("zhdiscanvas", "Canvas", 1400, 1400, 1400, 1400);
     zhdiscanvas -> SetWindowSize(1204,1228);
     zhdiscanvas -> SetCanvasSize(1200,1200);
     zhdishisto -> Draw("HIST");
     zhdiscanvas -> SaveAs((channelName + "_anti_zhdis.png").c_str());
 
+/*
     TCanvas *METhDiscanvas = new TCanvas("METhDiscanvas", "Canvas", 1400, 1400, 1400, 1400);
     METhDiscanvas -> SetWindowSize(1204,1228);
     METhDiscanvas -> SetCanvasSize(1200,1200);
@@ -489,4 +610,16 @@ void llgg(const char *inputFile) {
     nsmallmasscanvas -> SetCanvasSize(1200,1200);
     nsmallmasshisto -> Draw("HIST");
     nsmallmasscanvas -> SaveAs((channelName + "_anti_nsmallmass.png").c_str());
+
+    TCanvas *thrustcanvas = new TCanvas("thrustcanvas", "Canvas", 1400, 1400, 1400, 1400);
+    thrustcanvas -> SetWindowSize(1204,1228);
+    thrustcanvas -> SetCanvasSize(1200,1200);
+    thrusthisto -> Draw("HIST");
+    thrustcanvas -> SaveAs((channelName + "_anti_thrust.png").c_str());
+
+    TCanvas *thrustmcanvas = new TCanvas("thrustmcanvas", "Canvas", 1400, 1400, 1400, 1400);
+    thrustmcanvas -> SetWindowSize(1204,1228);
+    thrustmcanvas -> SetCanvasSize(1200,1200);
+    thrustmhisto -> Draw("HIST");
+    thrustmcanvas -> SaveAs((channelName + "_anti_thrust_minor.png").c_str());
 }

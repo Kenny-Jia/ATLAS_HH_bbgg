@@ -21,8 +21,99 @@
 #include <TLorentzVector.h>
 #include <TLatex.h>
 #include <time.h>
+#include <TVector3.h>
+#include <vector>
+#include <algorithm>
+#include <cmath>
 #endif
-	
+
+bool compareTVector3(const TVector3& a, const TVector3& b) {
+    return a.Mag() > b.Mag();
+}
+double calculateThrust(const std::vector<TLorentzVector>& momenta) {
+    double t;
+    TVector3 totalMomentum(0, 0, 0);
+    for (const auto& particle : momenta) {
+	totalMomentum += particle.Vect();
+    }
+
+    double totalEnergy = 0;
+    for (const auto& particle : momenta) {
+	totalEnergy += particle.E();
+    }
+    TVector3 beta = -totalMomentum * (1.0 / totalEnergy);
+    
+    std::vector<TVector3> momentaCp;
+    for (const auto& particle : momenta) {
+	TLorentzVector tmpPar = particle;
+	tmpPar.Boost(beta);
+	momentaCp.push_back(tmpPar.Vect());
+    }
+    unsigned  int n = momentaCp.size();
+    if (n == 0) return 0.0;
+    if (n == 1) return 1.0;
+
+    assert(n >= 3);
+    n = 3;
+    if (momentaCp.size() == 3) n = 3;
+
+    std::vector<TVector3> tvec;
+    std::vector<double> tval;
+    std::sort(momentaCp.begin(), momentaCp.end(), compareTVector3);
+
+    /*
+    t = 0;
+    TVector3 tmpAxis = momentaCp[0].Unit();
+
+    for (unsigned int k = 0; k < momentaCp.size(); k++) {
+	t += fabs(tmpAxis.Dot(momentaCp[k]));
+    }
+    */
+    
+    for (unsigned int i = 0; i < pow(2, n - 1); i++) {
+	TVector3 foo(0, 0, 0);
+	int sign = i;
+	for (unsigned int k = 0; k < n; k++) {
+	    (sign % 2) == 1 ? foo += momentaCp[k] : foo -= momentaCp[k];
+	    sign /= 2;
+	}
+	foo = foo.Unit();
+
+	double diff = 999.;
+	while (diff > 1e-5) {
+	    TVector3 foobar(0, 0, 0);
+	    for (unsigned int k = 0; k < momentaCp.size(); k++) {
+		foo.Dot(momentaCp[k]) > 0 ? foobar += momentaCp[k] : foobar -= momentaCp[k];
+	    }
+	    diff = (foo - foobar.Unit()).Mag();
+	    foo = foobar.Unit();
+	}
+
+	t = 0.;
+	for (unsigned int k = 0; k < momentaCp.size(); k++) {
+	    t += fabs(foo.Dot(momentaCp[k]));
+	}
+
+	tval.push_back(t);
+	tvec.push_back(foo);
+    }
+    
+    double norm = 0.0;
+    for (const auto& p : momentaCp) {
+        norm += p.Mag();
+    }
+    
+    t = 0.;
+    for (unsigned int i = 0; i < tvec.size(); i++) {
+        if (tval[i] > t) {
+     	    t = tval[i];
+	    std::cout << "new biggest thrust = " << t/norm << std::endl;
+	    //taxis = tvec[i];
+	}
+    }
+    
+    return t / norm;
+}
 void llgg(const char *inputFile, TH1D *Hmass) {
 
     std::cout << "loading Delphes library" << std::endl;
@@ -44,6 +135,12 @@ void llgg(const char *inputFile, TH1D *Hmass) {
     TClonesArray *branchMuon = treeReader->UseBranch("Muon");
     TClonesArray *branchGenPar = treeReader->UseBranch("Particle");
     TClonesArray *branchEvent = treeReader->UseBranch("Event");
+
+    TClonesArray *branchTrack = treeReader->UseBranch("Track");
+    TClonesArray *branchTower = treeReader->UseBranch("Tower");
+    TClonesArray *branchEFlowTrack = treeReader->UseBranch("EFlowTrack");
+    TClonesArray *branchEFlowPhoton = treeReader->UseBranch("EFlowPhoton");
+    TClonesArray *branchEFlowNeutralHadron = treeReader->UseBranch("EFlowNeutralHadron");
 
     //TH1D *Zmass = new TH1D("Zmass", "lepton pair invariant mass", 100, 30, 220);
     //TH1D *Hmass = new TH1D("Hmass", "jet pair invariant mass", 30, 30, 220);
@@ -107,7 +204,7 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 	Double_t hphi;
 	Double_t hmass;
 	Double_t htau21;
-	Double_t htau32;
+	Double_t htau42;
 	Int_t hNCharged;
 	Int_t hNNeutral;
 	Double_t hChargeFrac;
@@ -202,17 +299,25 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 	heta = hjet -> Eta;
 	hphi = hjet -> Phi;
 	htau21 = (hjet -> Tau[1])/(hjet -> Tau[0]);
-	//htau32 = (hjet -> Tau[2])/(hjet -> Tau[1]);
+	htau42 = (hjet -> Tau[3])/(hjet -> Tau[1]);
 	hNNeutral = hjet -> NNeutrals;
 	hNCharged = hjet -> NCharged;
 	hChargeFrac = hjet -> ChargedEnergyFraction;
 	hbtag = hjet -> BTag;
-	/*
-	if (hbtag == 1) {
+	
+	if (htau42 < 0.5) {
 	    continue;
 	}
-	*/
+	if (htau21 > 0.5) {
+	    continue;
+	}
 	if (hpt < 250) {
+	    continue;
+	}
+	if (hNCharged < 20) {
+	    continue;
+	}
+	if (hNNeutral < 15) {
 	    continue;
 	}
 	// Uncomment to get jet constituents info
@@ -253,7 +358,7 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 	    continue;
 	}
 	
-	if (h_gg.M() < 0 or h_gg.M() > 250) {
+	if (h_gg.M() < 100 or h_gg.M() > 150) {
 	    continue;
 	}
 	
@@ -277,7 +382,10 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 	if (smallBtag == true) {
 	    continue;
 	}
-	std::cout << "# of small jet inside" << nsmallB << std::endl;
+	if (TMath::Abs(h_gg.DeltaR(z_ll) - TMath::Pi())>0.2) {
+	    continue;
+	}
+	//std::cout << "# of small jet inside" << nsmallB << std::endl;
         /*	
 	if (hpt < 400) {
 	    continue;
@@ -319,8 +427,31 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 	}
 	*/
 	//std::cout << "z_ll mass: " << lpairmass << "; h_gg mass: " << gpairmass<< std::endl;
-	total++;
 	
+	/*
+	std::vector<TLorentzVector> particlesArr;	
+	for(int i = 0; i < hjet->Constituents.GetEntriesFast(); ++i) {
+	    object = hjet->Constituents.At(i);
+	    if(object == 0) continue;
+	    if(object->IsA() == Tower::Class()) {
+	        Tower *tower = (Tower*) object;
+		TLorentzVector p4 = tower->P4();
+		particlesArr.push_back(p4); 
+	    }
+	    if(object->IsA() == Track::Class()) {
+	        Track *track = (Track*) object;
+	        TLorentzVector p4 = track->P4();
+	        particlesArr.push_back(p4);
+	    }
+	}
+
+	double thrust = calculateThrust(particlesArr);
+	//std::cout << "Thrust: " << thrust << std::endl;
+	if (thrust < 0.8) {
+	    //continue;
+	}
+	total++;
+	*/
 	/*
 	if (higgstag == false) {
 	    continue;
@@ -364,12 +495,15 @@ void llgg_stack(const char *sigFile, const char *bkgzjjFile, const char *bkgzhbb
     THStack* Hmass = new THStack("Hmass", ";Reconstructed Higgs Invariant Mass [GeV]; Events");
 
     TH1* sigHmass_clone = new TH1D(*sigHmass);
+    
+    /* Wrong Scale!!!!!!!!!!!!!!!!*/
     Double_t sig_w = 0.00080855364; //0.0040427682;
     Double_t sig_w_enh = 100 * sig_w;
     Double_t bkgzjj_w = 17.994;// 89.97;
     Double_t bkgzhbb_w = 0.00575182167;// 0.02875910838;
     Double_t bkgzhcc_w = 0.0002855171; //0.00142758554;
     Double_t bkgzhww_w = 0.00098464392; //0.00492321961;
+    /* Wrong Scale!!!!!!!!!!!!!!!!*/
 
     Int_t sig = sigHmass -> GetEntries();
     Int_t bkgzjj = bkgzjjHmass -> GetEntries();
