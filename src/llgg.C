@@ -135,7 +135,7 @@ void llgg(const char *inputFile) {
     chain.Add(inputFile);
 
     std::string input(inputFile);
-    size_t pos = input.find("_250GeV_14TeV_500k.root");
+    size_t pos = input.find("_250GeV_14TeV.root");
     std::string channelName;
     if (pos != std::string::npos) {
         channelName = input.substr(0, pos);
@@ -347,13 +347,16 @@ void llgg(const char *inputFile) {
 	
 	z_ll = l1 + l2;
 	h_gg.SetPtEtaPhiM(hpt, heta, hphi, hmass);
-        if (z_ll.DeltaR(h_gg) < 1) {
+        if (z_ll.DeltaR(h_gg) < 1.5) {
 	    continue;
 	}
 	if (z_ll.M() < 76 or z_ll.M() > 106) {
 	    continue;
 	}
 	if (h_gg.M() < 0 or h_gg.M() > 250) {
+	    continue;
+	}
+	if (z_ll.Pt() < 250 or h_gg.Pt() < 250) {
 	    continue;
 	}
 	Double_t lpairmass = z_ll.Mag();

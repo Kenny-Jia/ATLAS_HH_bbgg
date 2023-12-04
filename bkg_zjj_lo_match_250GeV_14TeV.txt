@@ -1,0 +1,23 @@
+import model sm 
+define j = j b b~
+generate p p > z j j / h, (z > l+ l-)
+output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjj_lo_match_250GeV_14TeV
+launch
+shower=Pythia8
+set ptllmin 100
+set ickkw 1 
+set xqcut 15 
+set maxjetflavor 5
+set ptj 15
+set ptb 15
+set etaj 3.0 
+set etab 3.0
+set etajmin -3.0
+set etabmin -3.0
+set wz auto
+set ebeam1 7000
+set ebeam2 7000
+set nevents 1000 
+set iseed 1823211
+set use_syst False
+0

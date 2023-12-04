@@ -1,7 +1,7 @@
 import model sm 
 define j = u s d c b u~ s~ d~ c~ b~ g
-generate p p > z j j, (z > l+ l-) / h
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjj_250GeV_14TeV_500k
+generate p p > z j j j / h, (z > l+ l-)
+output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjjj_250GeV_14TeV
 launch
 shower=Pythia8
 set ptllmin 100
@@ -16,6 +16,6 @@ set mh 125.0
 set wh 0.004
 set ebeam1 7000
 set ebeam2 7000
-set nevents 500000 
+set nevents 100000 
 set iseed 1823211
 0
