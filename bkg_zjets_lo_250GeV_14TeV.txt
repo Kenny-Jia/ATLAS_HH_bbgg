@@ -1,0 +1,23 @@
+import model sm
+generate p p > z / a h, z > l+ l- @0
+add process p p > z j / a h, z > l+ l- @1
+add process p p > z j j / a h, z > l+ l- @2
+add process p p > z j j j / a h, z > l+ l- @3
+output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjets_lo_250GeV_14TeV
+launch
+shower=Pythia8
+set pt_min_pdg {23: 100}
+set ptllmin 100
+set maxjetflavor 5
+set nevents 500000 
+set ickkw 1
+set jetradius 1.0
+set ptj 8 
+set etaj 3
+set xqcut 20
+set Qcut 20
+set njmax 3 
+set ebeam1 7000
+set ebeam2 7000
+set iseed 1823211
+0

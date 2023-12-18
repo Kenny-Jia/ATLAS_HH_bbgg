@@ -110,7 +110,7 @@ std::pair<double, double> calculateThrust(const std::vector<TLorentzVector>& mom
     for (unsigned int i = 0; i < tvec.size(); i++) {
         if (tval[i] > t) {
      	    t = tval[i];
-	    std::cout << "new biggest thrust = " << t/norm << std::endl;
+	    //std::cout << "new biggest thrust = " << t/norm << std::endl;
 	    taxis = tvec[i];
 	}
     }
@@ -135,7 +135,7 @@ void llgg(const char *inputFile) {
     chain.Add(inputFile);
 
     std::string input(inputFile);
-    size_t pos = input.find("_250GeV_14TeV.root");
+    size_t pos = input.find("_250GeV_14TeV_500k.root");
     std::string channelName;
     if (pos != std::string::npos) {
         channelName = input.substr(0, pos);
@@ -165,7 +165,7 @@ void llgg(const char *inputFile) {
     TClonesArray *branchEFlowNeutralHadron = treeReader->UseBranch("EFlowNeutralHadron");
 
 
-    TH1D *Zmass = new TH1D("Zmass", "lepton pair invariant mass", 100, 30, 220);
+    TH1D *Zmass = new TH1D("Zmass", "lepton pair invariant mass", 50, 30, 220);
     TH1D *Hmass = new TH1D("Hmass", "jet pair invariant mass", 50, 30, 220);
     TH1D *tau21 = new TH1D("tau21", "higgs tau21", 30, 0, 1);
     TH1D *tau42 = new TH1D("tau32", "higgs tau42", 30, 0, 1);
@@ -183,12 +183,14 @@ void llgg(const char *inputFile) {
     TH1D *thrusthisto = new TH1D("thrusthisto", "jet thrust", 100, 0.5, 1);
     TH1D *thrustmhisto = new TH1D("thrustmhisto", "jet thrust minor", 100, 0, 0.8);
 
+    TH1D *njethisto = new TH1D("njethisto", "number of jet", 9, 0, 8);
+
     std::cout << "Start loop ever tree" << std::endl;
 
     Int_t total = 0;
     Int_t find = 0;
 
-    for (Long64_t entry = 0; entry < nEntries; entry++) {
+    for (Long64_t entry = 0; entry < nEntries; ++entry) {
 	treeReader->ReadEntry(entry);
 
 	Int_t nJet = branchJet->GetEntriesFast();
@@ -203,7 +205,7 @@ void llgg(const char *inputFile) {
 	if (ne == 2 and nMu == 0) {
 	    emuflag = 1;
 	}
-	if (nMu == 2) {
+	if (nMu == 2 and ne == 0) {
 	    emuflag = 2;
 	}
 	if (emuflag == 0) {
@@ -231,7 +233,7 @@ void llgg(const char *inputFile) {
 	Double_t hpt;
 	Double_t heta;
 	Double_t hphi;
-	Double_t hmass;
+	Double_t hmass = 0;
 	Double_t htau21;
 	Double_t htau42;
 	Int_t hNCharged;
@@ -289,28 +291,40 @@ void llgg(const char *inputFile) {
 
 	l1.SetPtEtaPhiM(l1pt, l1eta, l1phi, lmass);
 	l2.SetPtEtaPhiM(l2pt, l2eta, l2phi, lmass);
-	if (l1.DeltaR(l2) < 0.05) {
+			
+	TLorentzVector z_ll;
+	z_ll.SetPtEtaPhiM(0, 0, 0, 0);
+	TLorentzVector h_gg;
+	h_gg.SetPtEtaPhiM(0, 0, 0, 0);
+	
+	z_ll = l1 + l2;
+	if (l1.DeltaR(l2) == 0) {
 	    continue;
 	}
 	Double_t mass_min = 100000000;
 	Jet *jet;
 	Jet *hjet;
-	Int_t hentry;
-	for (Int_t jentry = 0; jentry < nJet; jentry++) {
+	Int_t hentry = 0;
+	bool find_jet = false;
+	for (Int_t jentry = 0; jentry < nJet; ++jentry) {
 	    jet = (Jet *) branchJet -> At(jentry);
-	    
-	    /*
-	    if (jet -> BTag == 1) {
+	    if (fabs(jet -> Eta) > 3.0) {
 		continue;
 	    }
-	    */
+	
+	    if (TMath::Abs(jet->P4().DeltaR(z_ll) - TMath::Pi())>0.2) {
+	    	continue;
+	    }    
 	    if (TMath::Abs(jet -> Mass - 125) < mass_min) {
 		mass_min = TMath::Abs(jet -> Mass - 125);
 	        //hjet = (Jet *) branchJet -> At(jentry);
 		hentry = jentry; 
+		find_jet = true;
 	    }
 	}
-
+	if (find_jet == false) {
+	    continue;
+	}
 	
 	//std::cout << hentry << std::endl;
 	hjet = (Jet *) branchJet -> At(hentry);
@@ -334,23 +348,9 @@ void llgg(const char *inputFile) {
 	hNCharged = hjet -> NCharged;
 	hChargeFrac = hjet -> ChargedEnergyFraction;
 	hbtag = hjet -> BTag;
-		
-	if (hpt < 250){
-	    continue;
-	}
 
-	
-	TLorentzVector z_ll;
-	z_ll.SetPtEtaPhiM(0, 0, 0, 0);
-	TLorentzVector h_gg;
-	h_gg.SetPtEtaPhiM(0, 0, 0, 0);
-	
-	z_ll = l1 + l2;
 	h_gg.SetPtEtaPhiM(hpt, heta, hphi, hmass);
-        if (z_ll.DeltaR(h_gg) < 1.5) {
-	    continue;
-	}
-	if (z_ll.M() < 76 or z_ll.M() > 106) {
+	if (z_ll.M() < 66 or z_ll.M() > 116) {
 	    continue;
 	}
 	if (h_gg.M() < 0 or h_gg.M() > 250) {
@@ -450,7 +450,7 @@ void llgg(const char *inputFile) {
 	//std::cout << "z_ll mass: " << lpairmass << "; h_gg mass: " << gpairmass<< std::endl;
 	
 	
-	if (higgstag == false) {
+	if (higgstag == true) {
 	    //continue;
 	}
 	
@@ -491,13 +491,13 @@ void llgg(const char *inputFile) {
 	std::pair<double, double> thrust_result = calculateThrust(particlesArr);
 	double thrust = thrust_result.first;
 	double thrust_minor = thrust_result.second;
-	std::cout << "Thrust: " << thrust << std::endl;
-	std::cout << "Thrust_minor: " << thrust_minor << std::endl;
+	//std::cout << "Thrust: " << thrust << std::endl;
+	//std::cout << "Thrust_minor: " << thrust_minor << std::endl;
 
 	total++;
 	//std::cout << "event number " << entry << std::endl;
 	Zmass -> Fill(lpairmass);
-	Hmass -> Fill(h_gg.Mag());
+	Hmass -> Fill(hmass);
 	tau21 -> Fill(htau21);
 	tau42 -> Fill(htau42);
 	nchargehisto -> Fill(hNCharged);
@@ -506,13 +506,14 @@ void llgg(const char *inputFile) {
 	ChargeFrachisto -> Fill(hChargeFrac);
 	btaghisto -> Fill(hjet->BTag);
 	zhdishisto -> Fill(h_gg.DeltaR(z_ll));
-	//METhisto -> Fill(met->MET);
-	//METhDishisto -> Fill(h_gg.DeltaR(met->P4()));
+	METhisto -> Fill(met->MET);
+	METhDishisto -> Fill(h_gg.DeltaR(met->P4()));
 	nsmallhisto -> Fill(nsmallB);
 	nsmallmasshisto -> Fill(Summass/nsmallB);
 	thrusthisto -> Fill(thrust);
 	thrustmhisto -> Fill(thrust_minor);
-	std::cout << "event number" << entry << " hmass = " << h_gg.Mag() << std::endl;
+	njethisto -> Fill(nJet);
+	std::cout << "event number" << entry << " hmass = " << hmass << std::endl;
 	//std::cout << nJet << std::endl;
 	//std::cout <<  z_ll.DeltaR(h_gg) << std::endl;
     }
@@ -530,9 +531,9 @@ void llgg(const char *inputFile) {
     TLegend *legend = new TLegend(0.15, 0.65, 0.35, 0.85);
     legend -> AddEntry(Zmass, "lepton pair mass", "l");
     legend -> AddEntry(Hmass, "gluon pair mass", "l");
-    Zmass -> Draw("HIST");
-    Hmass -> Draw("same");
-    legend -> Draw("same");
+    //Zmass -> Draw("HIST");
+    Hmass -> Draw("HIST");
+    //legend -> Draw("same");
     totalcanvas -> SaveAs((channelName + "_anti.png").c_str());
 
     TCanvas *tau21canvas = new TCanvas("21canvas", "Canvas", 1400, 1400, 1400, 1400);
@@ -564,13 +565,13 @@ void llgg(const char *inputFile) {
     ptcanvas -> SetCanvasSize(1200,1200);
     pthisto -> Draw("HIST");
     ptcanvas -> SaveAs((channelName + "_anti_pt.png").c_str());
-/*
+
     TCanvas *metcanvas = new TCanvas("metcanvas", "Canvas", 1400, 1400, 1400, 1400);
     metcanvas -> SetWindowSize(1204,1228);
     metcanvas -> SetCanvasSize(1200,1200);
     METhisto -> Draw("HIST");
     metcanvas -> SaveAs((channelName + "_anti_met.png").c_str());
-*/
+
     TCanvas *ChargeFraccanvas = new TCanvas("ChargeFraccanvas", "Canvas", 1400, 1400, 1400, 1400);
     ChargeFraccanvas -> SetWindowSize(1204,1228);
     ChargeFraccanvas -> SetCanvasSize(1200,1200);
@@ -589,19 +590,25 @@ void llgg(const char *inputFile) {
     zhdishisto -> Draw("HIST");
     zhdiscanvas -> SaveAs((channelName + "_anti_zhdis.png").c_str());
 
-/*
+
     TCanvas *METhDiscanvas = new TCanvas("METhDiscanvas", "Canvas", 1400, 1400, 1400, 1400);
     METhDiscanvas -> SetWindowSize(1204,1228);
     METhDiscanvas -> SetCanvasSize(1200,1200);
     METhDishisto -> Draw("HIST");
     METhDiscanvas -> SaveAs((channelName + "_anti_METhDis.png").c_str());
 
+    TCanvas *njetcanvas = new TCanvas("njetcanvas", "Canvas", 1400, 1400, 1400, 1400);
+    njetcanvas -> SetWindowSize(1204,1228);
+    njetcanvas -> SetCanvasSize(1200,1200);
+    njethisto -> Draw("HIST");
+    njetcanvas -> SaveAs((channelName + "_anti_njet.png").c_str());
+
     TCanvas *truejetdiscanvas = new TCanvas("truejetdiscanvas", "Canvas", 1400, 1400, 1400, 1400);
     truejetdiscanvas -> SetWindowSize(1204,1228);
     truejetdiscanvas -> SetCanvasSize(1200,1200);
     truejethisto -> Draw("HIST");
     truejetdiscanvas -> SaveAs((channelName + "_anti_truejet.png").c_str());
-*/    
+    
     TCanvas *nsmallcanvas = new TCanvas("nsmallcanvas", "Canvas", 1400, 1400, 1400, 1400);
     nsmallcanvas -> SetWindowSize(1204,1228);
     nsmallcanvas -> SetCanvasSize(1200,1200);

@@ -173,7 +173,7 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 	if (ne == 2 and nMu == 0) {
 	    emuflag = 1;
 	}
-	if (nMu == 2) {
+	if (nMu == 2 and ne == 0) {
 	    emuflag = 2;
 	}
 	if (emuflag == 0) {
@@ -260,28 +260,42 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 
 	l1.SetPtEtaPhiM(l1pt, l1eta, l1phi, lmass);
 	l2.SetPtEtaPhiM(l2pt, l2eta, l2phi, lmass);
-	if (l1.DeltaR(l2) < 0.05) {
+
+	TLorentzVector z_ll;
+	z_ll.SetPtEtaPhiM(0, 0, 0, 0);
+	TLorentzVector h_gg;
+	h_gg.SetPtEtaPhiM(0, 0, 0, 0);
+
+	z_ll = l1 + l2;
+	if (l1.DeltaR(l2) ==0) {
 	    continue;
 	}
 	Double_t mass_min = 100000000;
 	Jet *jet;
 	Jet *hjet;
-	Int_t hentry;
+	Int_t hentry = 0;
+	bool find_jet = false;
 	for (Int_t jentry = 0; jentry < nJet; jentry++) {
 	    jet = (Jet *) branchJet -> At(jentry);
 	    
-	    /*
-	    if (jet -> BTag == 1) {
+	    if (fabs(jet -> Eta) > 3.0) {
 		continue;
 	    }
-	    */
+	
+	    if (TMath::Abs(jet->P4().DeltaR(z_ll) - TMath::Pi())>0.2) {
+	    	continue;
+	    }
 	    if (TMath::Abs(jet -> Mass - 125) < mass_min) {
-		mass_min = TMath::Abs(jet -> Mass - 125);
+			mass_min = TMath::Abs(jet -> Mass - 125);
 	        //hjet = (Jet *) branchJet -> At(jentry);
-		hentry = jentry; 
+			hentry = jentry;
+			find_jet = true; 
 	    }
 	}
-	
+	if (find_jet == false) {
+	    continue;
+	}
+
 	//std::cout << hentry << std::endl;
 	hjet = (Jet *) branchJet -> At(hentry);
 	if (hjet == 0) {
@@ -305,21 +319,22 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 	hChargeFrac = hjet -> ChargedEnergyFraction;
 	hbtag = hjet -> BTag;
 	
+	/*
 	if (htau42 < 0.5) {
 	    continue;
 	}
 	if (htau21 > 0.5) {
 	    continue;
 	}
-	if (hpt < 250) {
-	    continue;
-	}
+	*/
+	/*
 	if (hNCharged < 20) {
 	    continue;
 	}
 	if (hNNeutral < 15) {
 	    continue;
 	}
+	*/
 	// Uncomment to get jet constituents info
 	/*
 	for(int i = 0; i < hjet->Constituents.GetEntriesFast(); ++i) {
@@ -344,21 +359,16 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 	    	std::cout << std::endl;
 	}
 	*/
-	TLorentzVector z_ll;
-	z_ll.SetPtEtaPhiM(0, 0, 0, 0);
-	TLorentzVector h_gg;
-	h_gg.SetPtEtaPhiM(0, 0, 0, 0);
-	
-	z_ll = l1 + l2;
+
 	h_gg.SetPtEtaPhiM(hpt, heta, hphi, hmass);
-        if (z_ll.DeltaR(h_gg) < 1) {
-	    continue;
-	}
+
 	if (z_ll.M() < 76 or z_ll.M() > 106) {
 	    continue;
 	}
-	
-	if (h_gg.M() < 100 or h_gg.M() > 150) {
+	if (h_gg.M() < 0 or h_gg.M() > 250) {
+	    continue;
+	}
+	if (z_ll.Pt() < 250 or h_gg.Pt() < 250) {
 	    continue;
 	}
 	
@@ -382,9 +392,11 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 	if (smallBtag == true) {
 	    continue;
 	}
-	if (TMath::Abs(h_gg.DeltaR(z_ll) - TMath::Pi())>0.2) {
+	/*
+	if (TMath::Abs(h_gg.DeltaR(z_ll) - TMath::Pi())>0.5) {
 	    continue;
 	}
+	*/
 	//std::cout << "# of small jet inside" << nsmallB << std::endl;
         /*	
 	if (hpt < 400) {
@@ -481,11 +493,13 @@ void llgg(const char *inputFile, TH1D *Hmass) {
 void llgg_stack(const char *sigFile, const char *bkgzjjFile, const char *bkgzhbbFile, const char *bkgzhccFile, const char *bkgzhwwFile) {
     TFile *output = new TFile("ZH_analysis.root", "RECREATE");
     TTree *tree_output = new TTree("tree_output", "Delphes");
-    TH1D *sigHmass = new TH1D("Hmass", "jet pair invariant mass", 30, 0, 250);
-    TH1D *bkgzjjHmass = new TH1D("Hmass", "jet pair invariant mass", 30, 0, 250);
-    TH1D *bkgzhbbHmass = new TH1D("Hmass", "jet pair invariant mass", 30, 0, 250);
-    TH1D *bkgzhccHmass = new TH1D("Hmass", "jet pair invariant mass", 30, 0, 250);
-    TH1D *bkgzhwwHmass = new TH1D("Hmass", "jet pair invariant mass", 30, 0, 250);
+	int histmin = 0;
+	int histmax = 250;
+    TH1D *sigHmass = new TH1D("Hmass", "jet pair invariant mass", 30, histmin, histmax);
+    TH1D *bkgzjjHmass = new TH1D("Hmass", "jet pair invariant mass", 30, histmin, histmax);
+    TH1D *bkgzhbbHmass = new TH1D("Hmass", "jet pair invariant mass", 30, histmin, histmax);
+    TH1D *bkgzhccHmass = new TH1D("Hmass", "jet pair invariant mass", 30, histmin, histmax);
+    TH1D *bkgzhwwHmass = new TH1D("Hmass", "jet pair invariant mass", 30, histmin, histmax);
     llgg(sigFile, sigHmass);
     llgg(bkgzjjFile, bkgzjjHmass);
     llgg(bkgzhbbFile, bkgzhbbHmass);
@@ -496,14 +510,12 @@ void llgg_stack(const char *sigFile, const char *bkgzjjFile, const char *bkgzhbb
 
     TH1* sigHmass_clone = new TH1D(*sigHmass);
     
-    /* Wrong Scale!!!!!!!!!!!!!!!!*/
-    Double_t sig_w = 0.00080855364; //0.0040427682;
-    Double_t sig_w_enh = 100 * sig_w;
-    Double_t bkgzjj_w = 17.994;// 89.97;
-    Double_t bkgzhbb_w = 0.00575182167;// 0.02875910838;
-    Double_t bkgzhcc_w = 0.0002855171; //0.00142758554;
-    Double_t bkgzhww_w = 0.00098464392; //0.00492321961;
-    /* Wrong Scale!!!!!!!!!!!!!!!!*/
+    Double_t sig_w = 0.0093396; 
+    Double_t sig_w_enh = 1000 * sig_w;
+    Double_t bkgzjj_w = 556.6953864;
+    Double_t bkgzhbb_w = 0.06324864;
+    Double_t bkgzhcc_w = 0.003139626;
+    Double_t bkgzhww_w = 0.01182654;
 
     Int_t sig = sigHmass -> GetEntries();
     Int_t bkgzjj = bkgzjjHmass -> GetEntries();
@@ -538,13 +550,13 @@ void llgg_stack(const char *sigFile, const char *bkgzjjFile, const char *bkgzhbb
     Hmass -> Add(sigHmass);
 
     Hmass -> SetMaximum(1e6);
-    Hmass -> SetMinimum(1);
+    Hmass -> SetMinimum(10);
     TCanvas *totalcanvas = new TCanvas("totalcanvas", "Canvas", 1400, 1400, 1400, 1400);
     totalcanvas -> SetWindowSize(1204,1228);
     totalcanvas -> SetCanvasSize(1200,1200);
     totalcanvas -> SetLogy();
     TLegend *legend = new TLegend(0.65, 0.65, 0.85, 0.85);
-    legend -> AddEntry(sigHmass, "signal #times 100", "f");
+    legend -> AddEntry(sigHmass, "signal #times 1000", "f");
     legend -> AddEntry(sigHmass_clone, "signal", "l");
     legend -> AddEntry(bkgzjjHmass, "bkg Z+jj", "f");
     legend -> AddEntry(bkgzhwwHmass, "bkg Z+ww", "f");

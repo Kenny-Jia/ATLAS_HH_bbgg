@@ -1,0 +1,20 @@
+import model loop_sm-no_b_mass
+generate p p > z j / a h [QCD] @0
+add process p p > z j j / a h [QCD] @1 
+output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjets_nlo_14TeV_10k
+launch
+shower=Pythia8
+set maxjetflavor 5
+set ickkw 3
+set jetradius 1.0
+set ptj 8 
+set etaj 10
+set mll_sf 40
+set mll 40
+set Qcut 20
+set njmax 3 
+set ebeam1 7000
+set ebeam2 7000
+set iseed 1823211
+set nevents 10000
+0
