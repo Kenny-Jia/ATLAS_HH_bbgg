@@ -1,0 +1,32 @@
+import model sm-full
+define p = p b b~
+define j = p
+define l+ = e+ mu+
+define l- = e- mu-
+generate p p > z j / a h, (z > l+ l-) @0
+add process p p > z j j / a h, (z > l+ l-)
+output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjets_lo_250GeV_14TeV_1M
+launch
+shower=Pythia8
+set pdlabel lhapdf
+set lhaid 325100
+set pt_min_pdg {23: 100}
+set ptllmin 100
+set ickkw 1 
+set jetradius 1.0
+set ptb 8
+set etaj 3.0
+set etab 3.0
+set etajmin -3.0
+set etabmin -3.0
+set auto_ptj_mjj True
+set wz auto
+set xqcut 20
+set njmax 3
+set ebeam1 7000
+set ebeam2 7000
+set iseed 1823212
+set nevents 1000000
+set use_syst False
+0
+
