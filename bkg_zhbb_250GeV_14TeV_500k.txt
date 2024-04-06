@@ -1,6 +1,6 @@
 import model sm 
 generate p p > z h, (z > l+ l-), (h > b b~)
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zhbb_250GeV_14TeV_500k
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zhbb_250GeV_14TeV_500k
 launch
 shower=Pythia8
 set ptllmin 250

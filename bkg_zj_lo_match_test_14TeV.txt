@@ -2,7 +2,7 @@ import model sm
 define j = j b b~
 define p = p b b~
 generate p p > z j / h, (z > l+ l-)
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zj_lo_match_test_14TeV
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zj_lo_match_test_14TeV
 launch
 shower=Pythia8
 set ickkw 1 

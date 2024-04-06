@@ -52,15 +52,188 @@
 
 #include <cmath>
 
+#include <gudhi/Rips_complex.h>
+
+#include <gudhi/Simplex_tree.h>
+
+#include <gudhi/Persistence_intervals.h>
+
+#include <gudhi/Persistent_cohomology.h>
+
 #endif
+
+
 
 bool compareTVector3(const TVector3 & a,
     const TVector3 & b) {
     return a.Mag() > b.Mag();
 }
 
-#include <vector>
-#include <TLorentzVector.h>
+bool compareByPt(const TLorentzVector& vec1, const TLorentzVector& vec2) {
+    return vec1.Pt() > vec2.Pt();
+}
+
+bool compareByJetPt(const Jet * jet1, const Jet * jet2) {
+    TLorentzVector vec1 = jet1 -> P4();
+    TLorentzVector vec2 = jet2 -> P4();
+    return vec1.Pt() > vec2.Pt();
+}
+// Custom distance function
+struct DeltaRDistance {
+    double operator()(const TLorentzVector& v1, const TLorentzVector& v2) const {
+        //return TMath::Sqrt((v1.DeltaR(v2) * v1.DeltaR(v2)) + (v1.Pt() - v2.Pt()) * (v1.Pt() - v2.Pt()) * 0.000001);
+        return v1.DeltaR(v2);
+    }
+};
+
+double calculatePE(const std::vector<TLorentzVector>& points, double maxEdgeLength) {
+    using Points = TLorentzVector;
+    using Simplex_tree = Gudhi::Simplex_tree<>;
+    using Filtration_value = Simplex_tree::Filtration_value;
+    using Rips_complex = Gudhi::rips_complex::Rips_complex<Filtration_value>;
+    
+    Rips_complex rips_complex_from_points(points, maxEdgeLength, DeltaRDistance());
+    Simplex_tree stree;
+    rips_complex_from_points.create_complex(stree, 2);
+    Gudhi::persistent_cohomology::Persistent_cohomology< Simplex_tree, Gudhi::persistent_cohomology::Field_Zp > persistent_cohomology(stree);
+    persistent_cohomology.init_coefficients(11);
+    persistent_cohomology.compute_persistent_cohomology();
+    auto persistence_intervals = persistent_cohomology.get_persistent_pairs();
+
+    double L_D = 0.0;
+    for (const auto& pair : persistence_intervals) {
+        auto birth_simplex = std::get<0>(pair);
+        auto death_simplex = std::get<1>(pair);
+        double birth = stree.filtration(birth_simplex);
+        double death = stree.filtration(death_simplex);
+        // std::cout << "birth = "  << birth << std::endl;
+        // std::cout << "death = "  << death << std::endl;
+        if (death <= maxEdgeLength) {
+            L_D += death - birth;
+        }
+    }
+    if (L_D == 0) {
+        std::cout << "no persistence interval!" << std::endl;
+        return 0;
+    }
+    double entropy = 0.0;
+    for (const auto& pair : persistence_intervals) {
+        auto birth_simplex = std::get<0>(pair);
+        auto death_simplex = std::get<1>(pair);
+
+        double birth = stree.filtration(birth_simplex);
+        double death = stree.filtration(death_simplex);
+        if (death <= maxEdgeLength) {
+            double prob = abs(death - birth) * 1.0/L_D;
+            if (prob > 0) {
+                entropy -= prob * std::log(prob);
+            }
+        }
+    }
+    //std::cout << "PE = "  << entropy << std::endl;
+    return entropy;
+}
+
+Gudhi::Simplex_tree<> buildRipsComplex(const std::vector<TLorentzVector>& points, double maxEdgeLength) {
+    using Points = TLorentzVector;
+    using Simplex_tree = Gudhi::Simplex_tree<>;
+    using Filtration_value = Simplex_tree::Filtration_value;
+    using Rips_complex = Gudhi::rips_complex::Rips_complex<Filtration_value>;
+ 
+    Rips_complex rips_complex_from_points(points, maxEdgeLength, DeltaRDistance());
+    Simplex_tree stree;
+    rips_complex_from_points.create_complex(stree, 2);
+    return stree;
+}
+
+std::pair < double, double >  calculateS(Gudhi::Simplex_tree<>& ripsComplex) {
+    std::vector<size_t> degrees(ripsComplex.num_vertices(), 0);
+    size_t totalEdges = 0;
+    size_t totalFaces = 0;
+    // std::cout << "Number of vertices: " << ripsComplex.num_vertices() << std::endl;
+    // std::cout << "Number of simplices: " << ripsComplex.num_simplices() << std::endl;
+    
+    // Calculate the degree of each node
+    for (auto edge : ripsComplex.skeleton_simplex_range(1)) {
+        //std::cout << "Edge: ";
+        for (auto index : ripsComplex.simplex_vertex_range(edge)) {
+            //std::cout << "Index: " << index << " ";
+            if (index < degrees.size()) {
+                degrees[index]++;
+            }
+        }
+        //std::cout << std::endl;
+        totalEdges++;
+    }
+
+    std::vector<size_t> degrees_edge(totalEdges, 0);
+    for (auto face : ripsComplex.skeleton_simplex_range(2)) {
+        //std::cout << "Edge: ";
+        for (auto index : ripsComplex.simplex_vertex_range(face)) {
+            //std::cout << "Index: " << index << " ";
+            if (index < degrees_edge.size()) {
+                degrees_edge[index]++;
+            }
+        }
+        //std::cout << std::endl;
+        totalFaces++;
+    }
+
+    // Compute the sum of (k_i * log(k_i)) for all nodes
+    double sum = 0.0;
+    for (size_t k_i : degrees) {
+        if (k_i != 0){
+            sum += k_i * std::log(k_i);
+        }
+    }
+
+    double sum_edge = 0.0;
+    for (size_t k_i : degrees_edge) {
+        if (k_i != 0){
+            sum_edge += k_i * std::log(k_i);
+        }
+    }
+
+    // Calculate the final value of S
+    double S = (1.0 / (2.0 * totalEdges)) * sum;
+    //std::cout << "calculate entropy:  " << S << std::endl;
+
+    // Calculate the final value of S
+    double S_edge = (1.0 / (2.0 * totalFaces)) * sum_edge;
+    //std::cout << "calculate entropy_edge:  " << S_edge << std::endl;
+    return std::make_pair(S, S_edge);
+}
+
+
+double calculateD2(const std::vector<TLorentzVector>& constituents, double eJ) {
+    double e2 = 0.0;
+    double e3 = 0.0;
+
+    for (size_t i = 0; i < constituents.size(); ++i) {
+        const TLorentzVector& pi = constituents[i];
+        double Ei = pi.E();
+        for (size_t j = i + 1; j < constituents.size(); ++j) {
+            const TLorentzVector& pj = constituents[j];
+            double iDotj = pi.Dot(pj);
+            e2 += 2.0 * iDotj;
+
+            double Ej = pj.E();
+            for (size_t k = j + 1; k < constituents.size(); ++k) {
+                const TLorentzVector& pk = constituents[k];
+                double jDotk = pj.Dot(pk);
+                double kDoti = pk.Dot(pi);
+                e3 += 8.0 * iDotj * jDotk * kDoti / (Ei * Ej * pk.E());
+            }
+        }
+    }
+
+    // Normalize e2 and e3
+    e2 /= std::pow(eJ, 2);
+    e3 /= std::pow(eJ, 3);
+
+    // Calculate and return D2
+    return e3 / std::pow(e2, 3);
+}
 
 double calculateSubJetWidth(const std::vector<TLorentzVector>& constituents, const std::vector<TLorentzVector>& subjets) {
     if (constituents.empty()) return 0; // Guard against division by zero
@@ -176,14 +349,25 @@ void llgg(const char * inputFile,
                                     TH1D * subratio,
                                         TH1D * asym,
                                             TH1D * Rjj,
-                                                TH1D * subjetwidth) {
+                                                TH1D * subjetwidth,
+                                                    TH1D * D2,
+                                                        TH1D * Entropy,
+                                                            TH1D * Entropy_edge,
+                                                                TH1D * PE) {
 
     Double_t ptcut = 350;
     std::cout << "loading Delphes library" << std::endl;
-    gSystem -> Load("/eos/user/h/hjia/ATLAS_HH_bbgg/Delphes-3.5.0/libDelphes.so");
+    gSystem -> Load("/sdf/data/atlas/u/hjia625/ATLAS_H_gg/Delphes/libDelphes.so");
     //gSystem->Load("libDelphes");
     gROOT -> ProcessLine("gErrorIgnoreLevel = kWarning;");
     gErrorIgnoreLevel = kWarning;
+
+    //saved_output
+    std::string inputFilePath = inputFile;
+    std::string inputFileName = inputFilePath.substr(inputFilePath.find_last_of("/") + 1);
+    std::string outputFileName = inputFileName.substr(0, inputFileName.find_last_of(".")) + "_saved.root";
+    TFile* outputFile = new TFile(outputFileName.c_str(), "RECREATE");
+    TTree* outputTree = new TTree("HistData", "Histogram Data");
 
     std::cout << "open up file" << std::endl;
     TChain chain("Delphes");
@@ -191,7 +375,7 @@ void llgg(const char * inputFile,
 
     ExRootTreeReader * treeReader = new ExRootTreeReader( & chain);
     Long64_t nEntries = treeReader -> GetEntries();
-
+    
     TClonesArray * branchsmallJet = treeReader -> UseBranch("UniqueJet");
     TClonesArray * branchJet = treeReader -> UseBranch("PFJet10");
     TClonesArray * branchElectron = treeReader -> UseBranch("Electron");
@@ -217,11 +401,79 @@ void llgg(const char * inputFile,
     //TH1D *truejethisto = new TH1D("truejethisto", "true higgs and higgs jet distance", 30, 0, 4);
 
     std::cout << "Start loop ever tree" << std::endl;
+    Long64_t progressStep = nEntries / 100; // Update progress every 1%
+    if (progressStep == 0) progressStep = 1; // Ensure progress step is at least 1
+    std::cout << "Progress: [";
+    for (int i = 0; i < 50; ++i) std::cout << "-";
+    std::cout << "] (0.0%)" << std::endl;
+    std::cout.flush();
 
     Int_t total = 0;
     Int_t find = 0;
 
+    Double_t save_hmass, save_htau21, save_htau42, save_hthrust, save_hthrust_minor, save_hpt, save_hsubratio, save_hasym, save_hRjj, save_hsubjetwidth, save_hD2, save_hEntropy, save_hEntropy_edge, save_hPE;
+    Double_t save_heta, save_hphi, save_hsub1eta, save_hsub1phi, save_hsub1pt, save_hsub1mass, save_hsub2eta, save_hsub2phi, save_hsub2pt, save_hsub2mass;
+    Double_t save_lep1eta, save_lep1phi, save_lep1pt, save_lep1mass, save_lep2eta, save_lep2phi, save_lep2pt, save_lep2mass;
+    Double_t save_hsub1charge, save_hsub2charge;
+    Double_t save_hmet;
+    Int_t save_qg_tag;
+    Int_t save_htruth_total, save_hntotal;
+    
+    outputTree->Branch("hmass", &save_hmass, "hmass/D");
+    outputTree->Branch("htau21", &save_htau21, "htau21/D");
+    outputTree->Branch("htau42", &save_htau42, "htau42/D");
+    outputTree->Branch("hthrust", &save_hthrust, "hthrust/D");
+    outputTree->Branch("hthrust_minor", &save_hthrust_minor, "hthrust_minor/D");
+    outputTree->Branch("hntotal", &save_hntotal, "hntotal/I");
+    outputTree->Branch("hpt", &save_hpt, "hpt/D");
+    outputTree->Branch("htruth_total", &save_htruth_total, "htruth_total/I");
+    outputTree->Branch("hsubratio", &save_hsubratio, "hsubratio/D");
+    outputTree->Branch("hasym", &save_hasym, "hasym/D");
+    outputTree->Branch("hRjj", &save_hRjj, "hRjj/D");
+    outputTree->Branch("hsubjetwidth", &save_hsubjetwidth, "hsubjetwidth/D");
+    outputTree->Branch("hD2", &save_hD2, "hD2/D");
+    outputTree->Branch("hEntropy", &save_hEntropy, "hEntropy/D");
+    outputTree->Branch("hEntropy_edge", &save_hEntropy_edge, "hEntropy_edge/D");
+    outputTree->Branch("hPE", &save_hPE, "hPE/D");
+
+    //kinematics
+    outputTree->Branch("heta", &save_heta, "heta/D");
+    outputTree->Branch("hphi", &save_hphi, "hphi/D");
+    outputTree->Branch("hsub1eta", &save_hsub1eta, "hsub1eta/D");
+    outputTree->Branch("hsub1phi", &save_hsub1phi, "hsub1phi/D");
+    outputTree->Branch("hsub1pt", &save_hsub1pt, "hsub1pt/D");
+    outputTree->Branch("hsub1mass", &save_hsub1mass, "hsub1mass/D");
+    outputTree->Branch("hsub2eta", &save_hsub2eta, "hsub2eta/D");
+    outputTree->Branch("hsub2phi", &save_hsub2phi, "hsub2phi/D");
+    outputTree->Branch("hsub2pt", &save_hsub2pt, "hsub2pt/D");
+    outputTree->Branch("hsub2mass", &save_hsub2mass, "hsub2mass/D");
+    outputTree->Branch("lep1eta", &save_lep1eta, "lep1eta/D");
+    outputTree->Branch("lep1phi", &save_lep1phi, "lep1phi/D");
+    outputTree->Branch("lep1pt", &save_lep1pt, "lep1pt/D");
+    outputTree->Branch("lep1mass", &save_lep1mass, "lep1mass/D");
+    outputTree->Branch("lep2eta", &save_lep2eta, "lep2eta/D");
+    outputTree->Branch("lep2phi", &save_lep2phi, "lep2phi/D");
+    outputTree->Branch("lep2pt", &save_lep2pt, "lep2pt/D");
+    outputTree->Branch("lep2mass", &save_lep2mass, "lep2mass/D");
+    outputTree->Branch("hmet", &save_hmet, "hmet/D");
+
+    //truth_tag
+    outputTree->Branch("qg_tag", &save_qg_tag, "qg_tag/I");
+
+    //charge
+    outputTree->Branch("hsub1charge", &save_hsub1charge, "hsub1charge/D");
+    outputTree->Branch("hsub2charge", &save_hsub2charge, "hsub2charge/D");
+
     for (Long64_t entry = 0; entry < nEntries; entry++) {
+        if ((entry + 1) % progressStep == 0) {
+            double progress = static_cast<double>(entry + 1) / nEntries;
+            int barWidth = static_cast<int>(progress * 50);
+            std::cout << "\rProgress: [";
+            for (int i = 0; i < barWidth; ++i) std::cout << "#";
+            for (int i = barWidth; i < 50; ++i) std::cout << "-";
+            std::cout << "] (" << std::fixed << std::setprecision(1) << progress * 100 << "%)";
+            std::cout.flush();
+        }    
         bool higgstag = false;
         treeReader -> ReadEntry(entry);
 
@@ -230,8 +482,8 @@ void llgg(const char * inputFile,
         Int_t nMu = branchMuon -> GetEntries();
         Int_t nGenPar = branchGenPar -> GetEntries();
         MissingET *met;
-        met = (MissingET*) branchMET->At(0);
-
+        met = (MissingET*) branchMET -> At(0);
+        
 
         TObject * object;
 
@@ -330,6 +582,16 @@ void llgg(const char * inputFile,
         l1.SetPtEtaPhiM(l1pt, l1eta, l1phi, lmass);
         l2.SetPtEtaPhiM(l2pt, l2eta, l2phi, lmass);
 
+        save_lep1eta = l1eta;
+        save_lep1phi = l1phi;
+        save_lep1mass = lmass;
+        save_lep1pt = l1pt;
+
+        save_lep2eta = l2eta;
+        save_lep2phi = l2phi;
+        save_lep2mass = lmass;
+        save_lep2pt = l2pt;
+
         TLorentzVector z_ll;
         z_ll.SetPtEtaPhiM(0, 0, 0, 0);
         TLorentzVector h_gg;
@@ -347,14 +609,14 @@ void llgg(const char * inputFile,
         for (Int_t jentry = 0; jentry < nJet; jentry++) {
             jet = (Jet * ) branchJet -> At(jentry);
 
-            if (fabs(jet -> Eta) > 2.0) {
+            if (fabs(jet -> Eta) > 2) {
                 continue;
             }
 
             if (jet -> PT < ptcut) {
                 continue;
             }
-            if (TMath::Abs(jet -> P4().DeltaR(z_ll) - TMath::Pi()) > 0.5) {
+            if (TMath::Abs(jet -> P4().DeltaR(z_ll)) < 1.0) {
                 continue;
             }
             if (TMath::Abs(jet -> Mass - 125) < mass_min) {
@@ -455,12 +717,14 @@ void llgg(const char * inputFile,
         Double_t ptasym;
         std::vector<Double_t> subjetPTArr;
         std::vector<TLorentzVector> subjetP4Arr;
+        std::vector<Jet*> subjetArr;
         for (int j = 0; j < nsmallJet; ++j) {
             smalljet = (Jet * ) branchsmallJet -> At(j);
             if (h_gg.DeltaR(smalljet -> P4()) < 1.0) {
                 nsmallB++;
                 subjetPTArr.push_back(smalljet -> PT);
                 subjetP4Arr.push_back(smalljet -> P4());
+                subjetArr.push_back(smalljet);
                 if (smalljet -> BTag >= 1) {
                     smallBtag = true;
                 }
@@ -471,14 +735,132 @@ void llgg(const char * inputFile,
             continue;
         }
 
+        save_qg_tag = 3;
+        Double_t max1Energy = 0.0;
+        Double_t max2Energy = 0.0;
+        Int_t qg_flag1 = 0;
+        Int_t qg_flag2 = 0;
         if (subjetPTArr.size() < 2) {
             ratio = 1;
             ptasym = 1;
+            save_hsub1charge = 0;
+            save_hsub2charge = 0;
         } else {
             std::sort(subjetPTArr.begin(), subjetPTArr.end());
             std::reverse(subjetPTArr.begin(), subjetPTArr.end());
             ratio = subjetPTArr[1] * 1.0 / subjetPTArr[0];
             ptasym = (subjetPTArr[0] - subjetPTArr[1]) * 1.0 / (subjetPTArr[0] + subjetPTArr[1]);
+            
+            //std::sort(subjetP4Arr.begin(), subjetP4Arr.end(), compareByPt);
+            std::sort(subjetArr.begin(), subjetArr.end(), compareByJetPt);
+            Jet * subjet1 = subjetArr[0];
+            Jet * subjet2 = subjetArr[1];
+
+            //calculate jet charge
+            double sumChargeTimesPtPowKappa1 = 0.0;
+            double sumPtPowKappa1 = 0.0;
+            double sumChargeTimesPtPowKappa2 = 0.0;
+            double sumPtPowKappa2 = 0.0;
+            double kappa = 0.3; // Set the desired value of kappa
+
+            for (int i = 0; i < subjet1->Constituents.GetEntriesFast(); ++i) {
+                TObject* object = subjet1->Constituents.At(i);
+                if (object == nullptr) continue;
+
+                double charge = 0.0;
+                double pt = 0.0;
+
+                if (object->IsA() == Track::Class()) {
+                    Track* track = static_cast<Track*>(object);
+                    pt = track->PT;
+                    charge = track->Charge;
+                }
+                else {
+                    // Skip constituents that are not towers or tracks
+                    continue;
+                }
+
+                sumChargeTimesPtPowKappa1 += charge * std::pow(pt, kappa);
+                sumPtPowKappa1 += std::pow(pt, kappa);
+            }
+
+            double quantity1 = 0.0;
+            if (sumPtPowKappa1 != 0.0) {
+                quantity1 = sumChargeTimesPtPowKappa1 / sumPtPowKappa1;
+            }
+            save_hsub1charge = quantity1;
+
+            for (int i = 0; i < subjet2->Constituents.GetEntriesFast(); ++i) {
+                TObject* object = subjet2->Constituents.At(i);
+                if (object == nullptr) continue;
+
+                double charge = 0.0;
+                double pt = 0.0;
+
+                if (object->IsA() == Track::Class()) {
+                    Track* track = static_cast<Track*>(object);
+                    pt = track->PT;
+                    charge = track->Charge;
+                }
+                else {
+                    // Skip constituents that are not towers or tracks
+                    continue;
+                }
+
+                sumChargeTimesPtPowKappa2 += charge * std::pow(pt, kappa);
+                sumPtPowKappa2 += std::pow(pt, kappa);
+            }
+
+            double quantity2 = 0.0;
+            if (sumPtPowKappa2 != 0.0) {
+                quantity2 = sumChargeTimesPtPowKappa2 / sumPtPowKappa2;
+            }
+            save_hsub2charge = quantity2;
+            
+            //
+            save_hsub1eta = subjet1 -> Eta;
+            save_hsub1phi = subjet1 -> Phi;
+            save_hsub1pt = subjet1 -> PT;
+            save_hsub1mass = subjet1 -> Mass;
+
+            save_hsub2eta = subjet2 -> Eta;
+            save_hsub2phi = subjet2 -> Phi;
+            save_hsub2pt = subjet2 -> PT;
+            save_hsub2mass = subjet2 -> Mass;
+
+            GenParticle * Parton1;
+            GenParticle * Parton2;
+            for (Int_t i = 0; i < branchGenPar  -> GetEntries(); ++i) {
+                GenParticle * genParticle = (GenParticle *) branchGenPar -> At(i);
+                if ((genParticle -> PID >= 1 && genParticle -> PID >= 6) || genParticle -> PID == 21) {
+                    Double_t deltaR = subjet1 -> P4().DeltaR(genParticle -> P4());
+                    if (deltaR < 0.3) {
+                        if (genParticle -> E > max1Energy) {
+                            max1Energy = genParticle->P4().Energy();
+                            Parton1 = genParticle;
+                        }
+                    }
+                }
+            }
+            if (Parton1 -> PID == 21) {
+                qg_flag1 = 1;
+            }
+            for (Int_t i = 0; i < branchGenPar -> GetEntries(); ++i) {
+                GenParticle * genParticle = (GenParticle *) branchGenPar -> At(i);
+                if ((genParticle -> PID >= 1 && genParticle -> PID >= 6) || genParticle -> PID == 21) {
+                    Double_t deltaR = subjet2 -> P4().DeltaR(genParticle -> P4());
+                    if (deltaR < 0.3) {
+                        if (genParticle -> E > max2Energy) {
+                            max2Energy = genParticle->P4().Energy();
+                            Parton2 = genParticle;
+                        }
+                    }
+                }
+            }
+            if (Parton2 -> PID == 21) {
+                qg_flag2 = 1;
+            }
+            save_qg_tag = qg_flag1 + qg_flag2;
         }
         
         
@@ -546,8 +928,8 @@ void llgg(const char * inputFile,
         	if(object == 0) continue;
         	if(object->IsA() == Tower::Class()) {
         		Tower *tower = (Tower*) object;
-        	TLorentzVector p4 = tower->P4();
-        	particlesArr.push_back(p4); 
+                TLorentzVector p4 = tower->P4();
+                particlesArr.push_back(p4); 
         	}
         	if(object->IsA() == Track::Class()) {
         		Track *track = (Track*) object;
@@ -557,10 +939,22 @@ void llgg(const char * inputFile,
         }
 
         std::pair < double, double > thrust_result = calculateThrust(particlesArr);
+        Double_t SubJetWidth = 0;
+        SubJetWidth = calculateSubJetWidth(particlesArr, subjetP4Arr);
+        Double_t hD2 = calculateD2(particlesArr, h_gg.E());
+
+        double maxEdgeLength = 0.03; // Adjust this value according to your needs
+
+        Gudhi::Simplex_tree<> ripsComplex = buildRipsComplex(particlesArr, maxEdgeLength);
+
+        std::pair < double, double > entropy_result = calculateS(ripsComplex);
+        double hPE  = calculatePE(particlesArr, 1.0);
         
-        Double_t SubJetWidth = calculateSubJetWidth(particlesArr, subjetP4Arr);
         double hthrust = thrust_result.first;
         double hthrust_minor = thrust_result.second;
+
+        double hEntropy = entropy_result.first;
+        double hEntropy_edge = entropy_result.second;
 
         if (hNNeutral+hNCharged < 40) { 
             //continue;
@@ -598,13 +992,41 @@ void llgg(const char * inputFile,
         truth_total -> Fill(ntotal_truth);
         subratio -> Fill(ratio);
         asym -> Fill(ptasym);
+        Entropy -> Fill(hEntropy);
+        Entropy_edge -> Fill(hEntropy_edge);
         if (subjetPTArr.size() < 2) {
             Rjj -> Fill (0);
         } else {
             Rjj -> Fill (h_gg.Mag()/(TMath::Sqrt(subjetPTArr[0] * subjetPTArr[1])));
         }
         subjetwidth -> Fill(SubJetWidth);
+        D2 -> Fill(hD2);
+        PE -> Fill(hPE);
         
+
+        save_hmass = h_gg.Mag();
+        save_htau21 = htau21;
+        save_htau42 = htau42;
+        save_hthrust = hthrust;
+        save_hthrust_minor = hthrust_minor;
+        save_hntotal = hNNeutral + hNCharged;
+        save_hpt = hpt;
+        save_htruth_total = ntotal_truth;
+        save_hsubratio = ratio;
+        save_hasym = ptasym;
+        save_hRjj = (subjetPTArr.size() < 2) ? 0 : (h_gg.Mag() / (TMath::Sqrt(subjetPTArr[0] * subjetPTArr[1])));
+        save_hsubjetwidth = SubJetWidth;
+        save_hD2 = hD2;
+        save_hEntropy = hEntropy;
+        save_hEntropy_edge = hEntropy_edge;
+        save_hPE = hPE;
+
+        //kinematics
+        save_heta = heta;
+        save_hphi = hphi;
+        save_hmet = met -> MET;
+
+        outputTree->Fill();
         //nchargehisto -> Fill(hNCharged);
         //nneutralhisto -> Fill(hNNeutral);
         //pthisto -> Fill(hpt);
@@ -619,7 +1041,16 @@ void llgg(const char * inputFile,
     Int_t totalnum = Hmass -> GetEntries();
     std::cout << "total number of event pass requirement is " << totalnum << std::endl;
     std::cout << "total is " << total << std::endl;
+
+    std::cout << "Write saved data into " << outputFileName << std::endl;
+    outputFile->cd();
+    outputTree->Write();
+    outputFile->Close();
+    std::cout << "\rProgress: [";
+    for (int i = 0; i < 50; ++i) std::cout << "#";
+    std::cout << "] (100.0%)" << std::endl;
 }
+
 void llgg_stack(const char * sigFile,
     const char * bkgzjetsFile,
         const char * bkgzhbbFile,
@@ -628,6 +1059,9 @@ void llgg_stack(const char * sigFile,
                     const char * bkgzzqqFile,
                         const char * bkgzwqqFile,
                             const char * bkgttFile) {
+    gROOT->ProcessLine(".include /fs/ddn/sdf/group/atlas/d/hjia625/gudhi.3.9.0/include");
+    gSystem->AddIncludePath("-I/fs/ddn/sdf/group/atlas/d/hjia625/gudhi.3.9.0/include");
+
     TFile * output = new TFile("ZH_analysis.root", "RECREATE");
     TTree * tree_output = new TTree("tree_output", "Delphes");
 
@@ -642,6 +1076,10 @@ void llgg_stack(const char * sigFile,
     int asymbins = 30;
     int Rjjbins = 30;
     int subjetwidthbins = 30;
+    int D2bins = 30;
+    int Entropybins = 30;
+    int Entropy_edgebins = 30;
+    int PEbins = 30;
 
     TH1D * sigHmass = new TH1D("sigHmass", "Reconstucted Higgs invariant mass", bins, histmin, histmax);
     TH1D * bkgzjetsHmass = new TH1D("bkgzjetsHmass", "Reconstucted Higgs invariant mass", bins, histmin, histmax);
@@ -751,14 +1189,50 @@ void llgg_stack(const char * sigFile,
     TH1D * bkgzwqqsubjetwidth = new TH1D("bkgzwqqsubjetwidth", "Reconstucted Higgs subjetwidth", subjetwidthbins, 0, 0.3);
     TH1D * bkgttsubjetwidth = new TH1D("bkgttsubjetwidth", "Reconstucted Higgs subjetwidth", subjetwidthbins, 0, 0.3);
 
-    llgg(sigFile, sigHmass, sigtau21, sigtau42, sigthrust, sigthrust_minor, signtotal, sigpt, sigtruth_total, sigratio, sigasym, sigRjj, sigsubjetwidth);
-    llgg(bkgzjetsFile, bkgzjetsHmass, bkgzjetstau21, bkgzjetstau42, bkgzjetsthrust, bkgzjetsthrust_minor, bkgzjetsntotal, bkgzjetspt, bkgzjetstruth_total, bkgzjetsratio, bkgzjetsasym, bkgzjetsRjj, bkgzjetssubjetwidth);
-    llgg(bkgzhbbFile, bkgzhbbHmass, bkgzhbbtau21, bkgzhbbtau42, bkgzhbbthrust, bkgzhbbthrust_minor, bkgzhbbntotal, bkgzhbbpt, bkgzhbbtruth_total, bkgzhbbratio, bkgzhbbasym, bkgzhbbRjj, bkgzhbbsubjetwidth);
-    llgg(bkgzhccFile, bkgzhccHmass, bkgzhcctau21, bkgzhcctau42, bkgzhccthrust, bkgzhccthrust_minor, bkgzhccntotal, bkgzhccpt, bkgzhcctruth_total, bkgzhccratio, bkgzhccasym, bkgzhccRjj, bkgzhccsubjetwidth);
-    llgg(bkgzh4qFile, bkgzh4qHmass, bkgzh4qtau21, bkgzh4qtau42, bkgzh4qthrust, bkgzh4qthrust_minor, bkgzh4qntotal, bkgzh4qpt, bkgzh4qtruth_total, bkgzh4qratio, bkgzh4qasym, bkgzh4qRjj, bkgzh4qsubjetwidth);
-    llgg(bkgzzqqFile, bkgzzqqHmass, bkgzzqqtau21, bkgzzqqtau42, bkgzzqqthrust, bkgzzqqthrust_minor, bkgzzqqntotal, bkgzzqqpt, bkgzzqqtruth_total, bkgzzqqratio, bkgzzqqasym, bkgzzqqRjj, bkgzzqqsubjetwidth);
-    llgg(bkgzwqqFile, bkgzwqqHmass, bkgzwqqtau21, bkgzwqqtau42, bkgzwqqthrust, bkgzwqqthrust_minor, bkgzwqqntotal, bkgzwqqpt, bkgzwqqtruth_total, bkgzwqqratio, bkgzwqqasym, bkgzwqqRjj, bkgzwqqsubjetwidth);
-    llgg(bkgttFile, bkgttHmass, bkgtttau21, bkgtttau42, bkgttthrust, bkgttthrust_minor, bkgttntotal, bkgttpt, bkgtttruth_total, bkgttratio, bkgttasym, bkgttRjj, bkgttsubjetwidth);
+    TH1D * sigD2 = new TH1D("signD2", "Reconstucted Higgs D2", D2bins, 0, 30);
+    TH1D * bkgzjetsD2 = new TH1D("bkgzjetsnD2", "Reconstucted Higgs D2", D2bins, 0, 30);
+    TH1D * bkgzhbbD2 = new TH1D("bkgzhbbD2", "Reconstucted Higgs D2", D2bins, 0, 30);
+    TH1D * bkgzhccD2 = new TH1D("bkgzhccD2", "Reconstucted Higgs D2", D2bins, 0, 30);
+    TH1D * bkgzh4qD2 = new TH1D("bkgzh4qD2", "Reconstucted Higgs D2", D2bins, 0, 30);
+    TH1D * bkgzzqqD2 = new TH1D("bkgzzqqD2", "Reconstucted Higgs D2", D2bins, 0, 30);
+    TH1D * bkgzwqqD2 = new TH1D("bkgzwqqD2", "Reconstucted Higgs D2", D2bins, 0, 30);
+    TH1D * bkgttD2 = new TH1D("bkgttD2", "Reconstucted Higgs D2", D2bins, 0, 30);
+    
+    TH1D * sigEntropy = new TH1D("signEntropy", "Reconstucted Higgs Entropy", Entropybins, 0, 2.5);
+    TH1D * bkgzjetsEntropy = new TH1D("bkgzjetsnEntropy", "Reconstucted Higgs Entropy", Entropybins, 0, 2.5);
+    TH1D * bkgzhbbEntropy = new TH1D("bkgzhbbEntropy", "Reconstucted Higgs Entropy", Entropybins, 0, 2.5);
+    TH1D * bkgzhccEntropy = new TH1D("bkgzhccEntropy", "Reconstucted Higgs Entropy", Entropybins, 0, 2.5);
+    TH1D * bkgzh4qEntropy = new TH1D("bkgzh4qEntropy", "Reconstucted Higgs Entropy", Entropybins, 0, 2.5);
+    TH1D * bkgzzqqEntropy = new TH1D("bkgzzqqEntropy", "Reconstucted Higgs Entropy", Entropybins, 0, 2.5);
+    TH1D * bkgzwqqEntropy = new TH1D("bkgzwqqEntropy", "Reconstucted Higgs Entropy", Entropybins, 0, 2.5);
+    TH1D * bkgttEntropy = new TH1D("bkgttEntropy", "Reconstucted Higgs Entropy", Entropybins, 0, 2.5);
+       
+    TH1D * sigEntropy_edge = new TH1D("signEntropy_edge", "Reconstucted Higgs Entropy_edge", Entropy_edgebins, 0, 7);
+    TH1D * bkgzjetsEntropy_edge = new TH1D("bkgzjetsnEntropy_edge", "Reconstucted Higgs Entropy_edge", Entropy_edgebins, 0, 7);
+    TH1D * bkgzhbbEntropy_edge = new TH1D("bkgzhbbEntropy_edge", "Reconstucted Higgs Entropy_edge", Entropy_edgebins, 0, 7);
+    TH1D * bkgzhccEntropy_edge = new TH1D("bkgzhccEntropy_edge", "Reconstucted Higgs Entropy_edge", Entropy_edgebins, 0, 7);
+    TH1D * bkgzh4qEntropy_edge = new TH1D("bkgzh4qEntropy_edge", "Reconstucted Higgs Entropy_edge", Entropy_edgebins, 0, 7);
+    TH1D * bkgzzqqEntropy_edge = new TH1D("bkgzzqqEntropy_edge", "Reconstucted Higgs Entropy_edge", Entropy_edgebins, 0, 7);
+    TH1D * bkgzwqqEntropy_edge = new TH1D("bkgzwqqEntropy_edge", "Reconstucted Higgs Entropy_edge", Entropy_edgebins, 0, 7);
+    TH1D * bkgttEntropy_edge = new TH1D("bkgttEntropy_edge", "Reconstucted Higgs Entropy_edge", Entropy_edgebins, 0, 7);
+      
+    TH1D * sigPE = new TH1D("signPE", "Reconstucted Higgs PE", PEbins, 0, 6);
+    TH1D * bkgzjetsPE = new TH1D("bkgzjetsnPE", "Reconstucted Higgs PE", PEbins, 0, 6);
+    TH1D * bkgzhbbPE = new TH1D("bkgzhbbPE", "Reconstucted Higgs PE", PEbins, 0, 6);
+    TH1D * bkgzhccPE = new TH1D("bkgzhccPE", "Reconstucted Higgs PE", PEbins, 0, 6);
+    TH1D * bkgzh4qPE = new TH1D("bkgzh4qPE", "Reconstucted Higgs PE", PEbins, 0, 6);
+    TH1D * bkgzzqqPE = new TH1D("bkgzzqqPE", "Reconstucted Higgs PE", PEbins, 0, 6);
+    TH1D * bkgzwqqPE = new TH1D("bkgzwqqPE", "Reconstucted Higgs PE", PEbins, 0, 6);
+    TH1D * bkgttPE = new TH1D("bkgttPE", "Reconstucted Higgs PE", PEbins, 0, 6);
+
+    llgg(sigFile, sigHmass, sigtau21, sigtau42, sigthrust, sigthrust_minor, signtotal, sigpt, sigtruth_total, sigratio, sigasym, sigRjj, sigsubjetwidth, sigD2, sigEntropy, sigEntropy_edge, sigPE);
+    llgg(bkgzjetsFile, bkgzjetsHmass, bkgzjetstau21, bkgzjetstau42, bkgzjetsthrust, bkgzjetsthrust_minor, bkgzjetsntotal, bkgzjetspt, bkgzjetstruth_total, bkgzjetsratio, bkgzjetsasym, bkgzjetsRjj, bkgzjetssubjetwidth, bkgzjetsD2, bkgzjetsEntropy, bkgzjetsEntropy_edge, bkgzjetsPE);
+    llgg(bkgzhbbFile, bkgzhbbHmass, bkgzhbbtau21, bkgzhbbtau42, bkgzhbbthrust, bkgzhbbthrust_minor, bkgzhbbntotal, bkgzhbbpt, bkgzhbbtruth_total, bkgzhbbratio, bkgzhbbasym, bkgzhbbRjj, bkgzhbbsubjetwidth, bkgzhbbD2, bkgzhbbEntropy, bkgzhbbEntropy_edge, bkgzhbbPE);
+    llgg(bkgzhccFile, bkgzhccHmass, bkgzhcctau21, bkgzhcctau42, bkgzhccthrust, bkgzhccthrust_minor, bkgzhccntotal, bkgzhccpt, bkgzhcctruth_total, bkgzhccratio, bkgzhccasym, bkgzhccRjj, bkgzhccsubjetwidth, bkgzhccD2, bkgzhccEntropy, bkgzhccEntropy_edge, bkgzhccPE);
+    llgg(bkgzh4qFile, bkgzh4qHmass, bkgzh4qtau21, bkgzh4qtau42, bkgzh4qthrust, bkgzh4qthrust_minor, bkgzh4qntotal, bkgzh4qpt, bkgzh4qtruth_total, bkgzh4qratio, bkgzh4qasym, bkgzh4qRjj, bkgzh4qsubjetwidth, bkgzh4qD2, bkgzh4qEntropy, bkgzh4qEntropy_edge, bkgzh4qPE);
+    llgg(bkgzzqqFile, bkgzzqqHmass, bkgzzqqtau21, bkgzzqqtau42, bkgzzqqthrust, bkgzzqqthrust_minor, bkgzzqqntotal, bkgzzqqpt, bkgzzqqtruth_total, bkgzzqqratio, bkgzzqqasym, bkgzzqqRjj, bkgzzqqsubjetwidth, bkgzzqqD2, bkgzzqqEntropy, bkgzzqqEntropy_edge, bkgzzqqPE);
+    llgg(bkgzwqqFile, bkgzwqqHmass, bkgzwqqtau21, bkgzwqqtau42, bkgzwqqthrust, bkgzwqqthrust_minor, bkgzwqqntotal, bkgzwqqpt, bkgzwqqtruth_total, bkgzwqqratio, bkgzwqqasym, bkgzwqqRjj, bkgzwqqsubjetwidth, bkgzwqqD2, bkgzwqqEntropy, bkgzwqqEntropy_edge, bkgzwqqPE);
+    llgg(bkgttFile, bkgttHmass, bkgtttau21, bkgtttau42, bkgttthrust, bkgttthrust_minor, bkgttntotal, bkgttpt, bkgtttruth_total, bkgttratio, bkgttasym, bkgttRjj, bkgttsubjetwidth, bkgttD2, bkgttEntropy, bkgttEntropy_edge, bkgttPE);
     
     THStack * Hmass = new THStack("Hmass", ";Reconstructed Higgs Invariant Mass [GeV]; Events/5 GeV");
 
@@ -782,7 +1256,7 @@ void llgg_stack(const char * sigFile,
     Int_t bkgzzqq = bkgzzqqHmass -> GetEntries();
     Int_t bkgzwqq = bkgzwqqHmass -> GetEntries();
     Int_t bkgtt = bkgttHmass -> GetEntries();
-    Double_t significance = sig * sig_w / TMath::Sqrt(bkgzjets * bkgzjets_w + bkgzhbb * bkgzhbb_w + bkgzhcc * bkgzhcc_w + bkgzh4q * bkgzh4q_w + bkgzzqq * bkgzzqq_w + bkgzwqq * bkgzwqq_w+ bkgtt * bkgtt_w);
+    Double_t significance = sig * sig_w / TMath::Sqrt(bkgzjets * bkgzjets_w + bkgzhbb * bkgzhbb_w + bkgzhcc * bkgzhcc_w + bkgzh4q * bkgzh4q_w + bkgzzqq * bkgzzqq_w + bkgzwqq * bkgzwqq_w + bkgtt * bkgtt_w);
     std::cout << "signal expected " << sig * sig_w << std::endl;
     std::cout << "zjets expected " << bkgzjets * bkgzjets_w << std::endl;
     std::cout << "zhbb expected " << bkgzhbb * bkgzhbb_w << std::endl;
@@ -1514,6 +1988,293 @@ void llgg_stack(const char * sigFile,
 
     subjetwidthcanvas -> SaveAs("subjetwidth_stack.png");
 
+
+// D2
+    bkgzhccD2 -> SetLineColor(kMagenta + 2);
+    bkgzhccD2 -> SetLineWidth(4);
+    bkgzhccD2 -> Scale(1.0/bkgzhccD2->Integral());
+    bkgzh4qD2 -> SetLineColor(kTeal + 3);
+    bkgzh4qD2 -> SetLineWidth(4);
+    bkgzh4qD2 -> Scale(1.0/bkgzh4qD2->Integral());
+
+    bkgttD2 -> SetLineColor(kGray + 3);
+    bkgttD2 -> SetLineWidth(4);
+    bkgttD2 -> Scale(1.0/bkgttD2->Integral());
+    bkgzzqqD2 -> SetLineColor(kViolet - 6);
+    bkgzzqqD2 -> SetLineWidth(4);
+    bkgzzqqD2 -> Scale(1.0/bkgzzqqD2->Integral());
+    bkgzwqqD2 -> SetLineColor(kOrange + 7);
+    bkgzwqqD2 -> SetLineWidth(4);
+    bkgzwqqD2 -> Scale(1.0/bkgzwqqD2->Integral());
+
+    bkgzhbbD2 -> SetLineColor(kAzure + 2);
+    bkgzhbbD2 -> SetLineWidth(4);
+    bkgzhbbD2 -> Scale(1.0/bkgzhbbD2->Integral());
+    bkgzjetsD2 -> SetLineColor(kOrange - 2);
+    bkgzjetsD2 -> SetLineWidth(4);
+    bkgzjetsD2 -> Scale(1.0/bkgzjetsD2->Integral());
+    sigD2 -> SetLineColor(kPink - 1);
+    sigD2 -> SetLineWidth(4);
+    sigD2 -> Scale(1.0/sigD2->Integral());
+
+    TCanvas * D2canvas = new TCanvas("D2canvas", "Canvas", 1400, 1400, 1400, 1400);
+    D2canvas -> SetWindowSize(1248, 1228);
+    D2canvas -> SetCanvasSize(1200, 1200);
+    D2canvas -> SetLogy(0);
+    D2canvas -> SetLogx(0);
+    D2canvas -> cd();
+    TLegend * legendD2 = new TLegend(0.65, 0.65, 0.85, 0.85);
+    legendD2 -> AddEntry(sigD2, "signal", "l");
+    legendD2 -> AddEntry(bkgzjetsD2, "bkg Z+jets", "l");
+    //legendD2 -> AddEntry(bkgzhbbD2, "bkg Z+bb", "l");
+    //legendD2 -> AddEntry(bkgzh4qD2, "bkg Z+qqqq", "l");
+    //legendD2 -> AddEntry(bkgzhccD2, "bkg Z+cc", "l");
+    sigD2 -> Draw("hist");
+    sigD2 -> SetStats(0);
+    sigD2 ->GetXaxis()->SetTitle("D2");
+    // bkgzjetsD2 -> Draw("hist");
+    // bkgzjetsD2 -> SetStats(0);
+    // bkgzjetsD2 ->GetXaxis()->SetTitle("D2");
+    bkgzjetsD2 -> Draw("same hist");
+    //bkgzhbbD2 -> Draw("same hist");
+    //bkgzhccD2 -> Draw("same hist");
+    //bkgzzqqD2 -> Draw("same hist");
+    //bkgzwqqD2 -> Draw("same hist");
+    legendD2 -> Draw("same hist");
+
+    D2canvas -> SaveAs("D2_stack.png");
+
+
+// Entropy
+    bkgzhccEntropy -> SetLineColor(kMagenta + 2);
+    bkgzhccEntropy -> SetLineWidth(4);
+    bkgzhccEntropy -> Scale(1.0/bkgzhccEntropy->Integral());
+    bkgzh4qEntropy -> SetLineColor(kTeal + 3);
+    bkgzh4qEntropy -> SetLineWidth(4);
+    bkgzh4qEntropy -> Scale(1.0/bkgzh4qEntropy->Integral());
+
+    bkgttEntropy -> SetLineColor(kGray + 3);
+    bkgttEntropy -> SetLineWidth(4);
+    bkgttEntropy -> Scale(1.0/bkgttEntropy->Integral());
+    bkgzzqqEntropy -> SetLineColor(kViolet - 6);
+    bkgzzqqEntropy -> SetLineWidth(4);
+    bkgzzqqEntropy -> Scale(1.0/bkgzzqqEntropy->Integral());
+    bkgzwqqEntropy -> SetLineColor(kOrange + 7);
+    bkgzwqqEntropy -> SetLineWidth(4);
+    bkgzwqqEntropy -> Scale(1.0/bkgzwqqEntropy->Integral());
+
+    bkgzhbbEntropy -> SetLineColor(kAzure + 2);
+    bkgzhbbEntropy -> SetLineWidth(4);
+    bkgzhbbEntropy -> Scale(1.0/bkgzhbbEntropy->Integral());
+    bkgzjetsEntropy -> SetLineColor(kOrange - 2);
+    bkgzjetsEntropy -> SetLineWidth(4);
+    bkgzjetsEntropy -> Scale(1.0/bkgzjetsEntropy->Integral());
+    sigEntropy -> SetLineColor(kPink - 1);
+    sigEntropy -> SetLineWidth(4);
+    sigEntropy -> Scale(1.0/sigEntropy->Integral());
+
+    TCanvas * Entropycanvas = new TCanvas("Entropycanvas", "Canvas", 1400, 1400, 1400, 1400);
+    Entropycanvas -> SetWindowSize(1248, 1228);
+    Entropycanvas -> SetCanvasSize(1200, 1200);
+    Entropycanvas -> SetLogy(0);
+    Entropycanvas -> SetLogx(0);
+    Entropycanvas -> cd();
+    TLegend * legendEntropy = new TLegend(0.65, 0.65, 0.85, 0.85);
+    legendEntropy -> AddEntry(sigEntropy, "signal", "l");
+    legendEntropy -> AddEntry(bkgzjetsEntropy, "bkg Z+jets", "l");
+    //legendEntropy -> AddEntry(bkgzhbbEntropy, "bkg Z+bb", "l");
+    //legendEntropy -> AddEntry(bkgzh4qEntropy, "bkg Z+qqqq", "l");
+    //legendEntropy -> AddEntry(bkgzhccEntropy, "bkg Z+cc", "l");
+    sigEntropy -> Draw("hist");
+    sigEntropy -> SetStats(0);
+    sigEntropy ->GetXaxis()->SetTitle("Entropy");
+    // bkgzjetsEntropy -> Draw("hist");
+    // bkgzjetsEntropy -> SetStats(0);
+    // bkgzjetsEntropy ->GetXaxis()->SetTitle("Entropy");
+    bkgzjetsEntropy -> Draw("same hist");
+    //bkgzhbbEntropy -> Draw("same hist");
+    //bkgzhccEntropy -> Draw("same hist");
+    //bkgzzqqEntropy -> Draw("same hist");
+    //bkgzwqqEntropy -> Draw("same hist");
+    legendEntropy -> Draw("same hist");
+
+    Entropycanvas -> SaveAs("Entropy_stack.png");
+
+    
+
+// Entropy_edge
+    bkgzhccEntropy_edge -> SetLineColor(kMagenta + 2);
+    bkgzhccEntropy_edge -> SetLineWidth(4);
+    bkgzhccEntropy_edge -> Scale(1.0/bkgzhccEntropy_edge->Integral());
+    bkgzh4qEntropy_edge -> SetLineColor(kTeal + 3);
+    bkgzh4qEntropy_edge -> SetLineWidth(4);
+    bkgzh4qEntropy_edge -> Scale(1.0/bkgzh4qEntropy_edge->Integral());
+
+    bkgttEntropy_edge -> SetLineColor(kGray + 3);
+    bkgttEntropy_edge -> SetLineWidth(4);
+    bkgttEntropy_edge -> Scale(1.0/bkgttEntropy_edge->Integral());
+    bkgzzqqEntropy_edge -> SetLineColor(kViolet - 6);
+    bkgzzqqEntropy_edge -> SetLineWidth(4);
+    bkgzzqqEntropy_edge -> Scale(1.0/bkgzzqqEntropy_edge->Integral());
+    bkgzwqqEntropy_edge -> SetLineColor(kOrange + 7);
+    bkgzwqqEntropy_edge -> SetLineWidth(4);
+    bkgzwqqEntropy_edge -> Scale(1.0/bkgzwqqEntropy_edge->Integral());
+
+    bkgzhbbEntropy_edge -> SetLineColor(kAzure + 2);
+    bkgzhbbEntropy_edge -> SetLineWidth(4);
+    bkgzhbbEntropy_edge -> Scale(1.0/bkgzhbbEntropy_edge->Integral());
+    bkgzjetsEntropy_edge -> SetLineColor(kOrange - 2);
+    bkgzjetsEntropy_edge -> SetLineWidth(4);
+    bkgzjetsEntropy_edge -> Scale(1.0/bkgzjetsEntropy_edge->Integral());
+    sigEntropy_edge -> SetLineColor(kPink - 1);
+    sigEntropy_edge -> SetLineWidth(4);
+    sigEntropy_edge -> Scale(1.0/sigEntropy_edge->Integral());
+
+    TCanvas * Entropy_edgecanvas = new TCanvas("Entropy_edgecanvas", "Canvas", 1400, 1400, 1400, 1400);
+    Entropy_edgecanvas -> SetWindowSize(1248, 1228);
+    Entropy_edgecanvas -> SetCanvasSize(1200, 1200);
+    Entropy_edgecanvas -> SetLogy(0);
+    Entropy_edgecanvas -> SetLogx(0);
+    Entropy_edgecanvas -> cd();
+    TLegend * legendEntropy_edge = new TLegend(0.65, 0.65, 0.85, 0.85);
+    legendEntropy_edge -> AddEntry(sigEntropy_edge, "signal", "l");
+    legendEntropy_edge -> AddEntry(bkgzjetsEntropy_edge, "bkg Z+jets", "l");
+    //legendEntropy_edge -> AddEntry(bkgzhbbEntropy_edge, "bkg Z+bb", "l");
+    //legendEntropy_edge -> AddEntry(bkgzh4qEntropy_edge, "bkg Z+qqqq", "l");
+    //legendEntropy_edge -> AddEntry(bkgzhccEntropy_edge, "bkg Z+cc", "l");
+    sigEntropy_edge -> Draw("hist");
+    sigEntropy_edge -> SetStats(0);
+    sigEntropy_edge ->GetXaxis()->SetTitle("Entropy_edge");
+    // bkgzjetsEntropy_edge -> Draw("hist");
+    // bkgzjetsEntropy_edge -> SetStats(0);
+    // bkgzjetsEntropy_edge ->GetXaxis()->SetTitle("Entropy_edge");
+    bkgzjetsEntropy_edge -> Draw("same hist");
+    //bkgzhbbEntropy_edge -> Draw("same hist");
+    //bkgzhccEntropy_edge -> Draw("same hist");
+    //bkgzzqqEntropy_edge -> Draw("same hist");
+    //bkgzwqqEntropy_edge -> Draw("same hist");
+    legendEntropy_edge -> Draw("same hist");
+
+    Entropy_edgecanvas -> SaveAs("Entropy_edge_stack.png");
+
+
+
+// PE
+    bkgzhccPE -> SetLineColor(kMagenta + 2);
+    bkgzhccPE -> SetLineWidth(4);
+    bkgzhccPE -> Scale(1.0/bkgzhccPE->Integral());
+    bkgzh4qPE -> SetLineColor(kTeal + 3);
+    bkgzh4qPE -> SetLineWidth(4);
+    bkgzh4qPE -> Scale(1.0/bkgzh4qPE->Integral());
+
+    bkgttPE -> SetLineColor(kGray + 3);
+    bkgttPE -> SetLineWidth(4);
+    bkgttPE -> Scale(1.0/bkgttPE->Integral());
+    bkgzzqqPE -> SetLineColor(kViolet - 6);
+    bkgzzqqPE -> SetLineWidth(4);
+    bkgzzqqPE -> Scale(1.0/bkgzzqqPE->Integral());
+    bkgzwqqPE -> SetLineColor(kOrange + 7);
+    bkgzwqqPE -> SetLineWidth(4);
+    bkgzwqqPE -> Scale(1.0/bkgzwqqPE->Integral());
+
+    bkgzhbbPE -> SetLineColor(kAzure + 2);
+    bkgzhbbPE -> SetLineWidth(4);
+    bkgzhbbPE -> Scale(1.0/bkgzhbbPE->Integral());
+    bkgzjetsPE -> SetLineColor(kOrange - 2);
+    bkgzjetsPE -> SetLineWidth(4);
+    bkgzjetsPE -> Scale(1.0/bkgzjetsPE->Integral());
+    sigPE -> SetLineColor(kPink - 1);
+    sigPE -> SetLineWidth(4);
+    sigPE -> Scale(1.0/sigPE->Integral());
+
+    TCanvas * PE_zjetcanvas = new TCanvas("PEcanvas", "Canvas", 1400, 1400, 1400, 1400);
+    PE_zjetcanvas -> SetWindowSize(1248, 1228);
+    PE_zjetcanvas -> SetCanvasSize(1200, 1200);
+    PE_zjetcanvas -> SetLogy(0);
+    PE_zjetcanvas -> SetLogx(0);
+    PE_zjetcanvas -> cd();
+    TLegend * legendPE_zjet = new TLegend(0.65, 0.65, 0.85, 0.85);
+    legendPE_zjet -> AddEntry(sigPE, "signal", "l");
+    legendPE_zjet -> AddEntry(bkgzjetsPE, "bkg Z+jets", "l");
+    //legendPE -> AddEntry(bkgzhbbPE, "bkg Z+bb", "l");
+    //legendPE -> AddEntry(bkgzh4qPE, "bkg Z+qqqq", "l");
+    //legendPE -> AddEntry(bkgzhccPE, "bkg Z+cc", "l");
+    sigPE -> Draw("hist");
+    sigPE -> SetStats(0);
+    sigPE ->GetXaxis()->SetTitle("PE");
+    // bkgzjetsPE -> Draw("hist");
+    // bkgzjetsPE -> SetStats(0);
+    // bkgzjetsPE ->GetXaxis()->SetTitle("PE");
+    bkgzjetsPE -> Draw("same hist");
+    //bkgzhbbPE -> Draw("same hist");
+    //bkgzhccPE -> Draw("same hist");
+    //bkgzzqqPE -> Draw("same hist");
+    //bkgzwqqPE -> Draw("same hist");
+    legendPE_zjet -> Draw("same hist");
+
+    PE_zjetcanvas -> SaveAs("PE_zjet_stack.png");
+
+
+    TCanvas * PE_2bosoncanvas = new TCanvas("PE_2bosoncanvas", "Canvas", 1400, 1400, 1400, 1400);
+    PE_2bosoncanvas -> SetWindowSize(1248, 1228);
+    PE_2bosoncanvas -> SetCanvasSize(1200, 1200);
+    PE_2bosoncanvas -> SetLogy(0);
+    PE_2bosoncanvas -> SetLogx(0);
+    PE_2bosoncanvas -> cd();
+    TLegend * legendPE_2boson = new TLegend(0.65, 0.65, 0.85, 0.85);
+    legendPE_2boson -> AddEntry(sigPE, "signal", "l");
+    //legendPE_2boson -> AddEntry(bkgzjetsPE, "bkg Z+jets", "l");
+    legendPE_2boson -> AddEntry(bkgzzqqPE, "bkg ZZ", "l");
+    legendPE_2boson -> AddEntry(bkgzwqqPE, "bkg ZW", "l");
+    //legendPE -> AddEntry(bkgzhbbPE, "bkg Z+bb", "l");
+    //legendPE -> AddEntry(bkgzh4qPE, "bkg Z+qqqq", "l");
+    //legendPE -> AddEntry(bkgzhccPE, "bkg Z+cc", "l");
+    sigPE -> Draw("hist");
+    sigPE -> SetStats(0);
+    sigPE ->GetXaxis()->SetTitle("PE");
+    // bkgzjetsPE -> Draw("hist");
+    // bkgzjetsPE -> SetStats(0);
+    // bkgzjetsPE ->GetXaxis()->SetTitle("PE");
+    //bkgzjetsPE -> Draw("same hist");
+    //bkgzhbbPE -> Draw("same hist");
+    //bkgzhccPE -> Draw("same hist");
+    bkgzzqqPE -> Draw("same hist");
+    bkgzwqqPE -> Draw("same hist");
+    legendPE_2boson -> Draw("same hist");
+
+    PE_2bosoncanvas -> SaveAs("PE_2boson_stack.png");
+
+
+    TCanvas * PE_othercanvas = new TCanvas("PE_othercanvas", "Canvas", 1400, 1400, 1400, 1400);
+    PE_othercanvas -> SetWindowSize(1248, 1228);
+    PE_othercanvas -> SetCanvasSize(1200, 1200);
+    PE_othercanvas -> SetLogy(0);
+    PE_othercanvas -> SetLogx(0);
+    PE_othercanvas -> cd();
+    TLegend * legendPE_other = new TLegend(0.65, 0.65, 0.85, 0.85);
+    legendPE_other -> AddEntry(sigPE, "signal", "l");
+    //legendPE_other -> AddEntry(bkgzjetsPE, "bkg Z+jets", "l");
+    //legendPE_other -> AddEntry(bkgzzqqPE, "bkg ZZ", "l");
+    //legendPE_other -> AddEntry(bkgzwqqPE, "bkg ZW", "l");
+    legendPE_other -> AddEntry(bkgzhbbPE, "bkg Z+bb", "l");
+    legendPE_other -> AddEntry(bkgzh4qPE, "bkg Z+H->4q", "l");
+    legendPE_other -> AddEntry(bkgzhccPE, "bkg Z+cc", "l");
+    sigPE -> Draw("hist");
+    sigPE -> SetStats(0);
+    sigPE ->GetXaxis()->SetTitle("PE");
+    // bkgzjetsPE -> Draw("hist");
+    // bkgzjetsPE -> SetStats(0);
+    // bkgzjetsPE ->GetXaxis()->SetTitle("PE");
+    //bkgzjetsPE -> Draw("same hist");
+    bkgzhbbPE -> Draw("same hist");
+    bkgzhccPE -> Draw("same hist");
+    bkgzh4qPE -> Draw("same hist");
+    //bkgzzqqPE -> Draw("same hist");
+    //bkgzwqqPE -> Draw("same hist");
+    legendPE_other -> Draw("same hist");
+
+    PE_othercanvas -> SaveAs("PE_other_stack.png");
+
 //end    
     output -> cd();
     sigHmass -> Write();
@@ -1524,7 +2285,88 @@ void llgg_stack(const char * sigFile,
     bkgzzqqHmass -> Write();
     bkgzwqqHmass -> Write();
     bkgttHmass -> Write();
-    Hmass -> Write();
+    
+    sigPE -> Write();
+    bkgzjetsPE -> Write();
+    bkgzhbbPE -> Write();
+    bkgzhccPE -> Write();
+    bkgzh4qPE -> Write();
+    bkgzzqqPE -> Write();
+    bkgzwqqPE -> Write();
+    bkgttPE -> Write();
+   
+    sigD2 -> Write();
+    bkgzjetsD2 -> Write();
+    bkgzhbbD2 -> Write();
+    bkgzhccD2 -> Write();
+    bkgzh4qD2 -> Write();
+    bkgzzqqD2 -> Write();
+    bkgzwqqD2 -> Write();
+    bkgttD2 -> Write();
+   
+    sigRjj -> Write();
+    bkgzjetsRjj -> Write();
+    bkgzhbbRjj -> Write();
+    bkgzhccRjj -> Write();
+    bkgzh4qRjj -> Write();
+    bkgzzqqRjj -> Write();
+    bkgzwqqRjj -> Write();
+    bkgttRjj -> Write();
+   
+    sigasym -> Write();
+    bkgzjetsasym -> Write();
+    bkgzhbbasym -> Write();
+    bkgzhccasym -> Write();
+    bkgzh4qasym -> Write();
+    bkgzzqqasym -> Write();
+    bkgzwqqasym -> Write();
+    bkgttasym -> Write();
+   
+    signtotal -> Write();
+    bkgzjetsntotal -> Write();
+    bkgzhbbntotal -> Write();
+    bkgzhccntotal -> Write();
+    bkgzh4qntotal -> Write();
+    bkgzzqqntotal -> Write();
+    bkgzwqqntotal -> Write();
+    bkgttntotal -> Write();
+   
+    sigtau21 -> Write();
+    bkgzjetstau21 -> Write();
+    bkgzhbbtau21 -> Write();
+    bkgzhcctau21 -> Write();
+    bkgzh4qtau21 -> Write();
+    bkgzzqqtau21 -> Write();
+    bkgzwqqtau21 -> Write();
+    bkgtttau21 -> Write();
+   
+    sigtau42 -> Write();
+    bkgzjetstau42 -> Write();
+    bkgzhbbtau42 -> Write();
+    bkgzhcctau42 -> Write();
+    bkgzh4qtau42 -> Write();
+    bkgzzqqtau42 -> Write();
+    bkgzwqqtau42 -> Write();
+    bkgtttau42 -> Write();
+  
+    sigthrust_minor -> Write();
+    bkgzjetsthrust_minor -> Write();
+    bkgzhbbthrust_minor -> Write();
+    bkgzhccthrust_minor -> Write();
+    bkgzh4qthrust_minor -> Write();
+    bkgzzqqthrust_minor -> Write();
+    bkgzwqqthrust_minor -> Write();
+    bkgttthrust_minor -> Write();
+ 
+    sigthrust -> Write();
+    bkgzjetsthrust -> Write();
+    bkgzhbbthrust -> Write();
+    bkgzhccthrust -> Write();
+    bkgzh4qthrust -> Write();
+    bkgzzqqthrust -> Write();
+    bkgzwqqthrust -> Write();
+    bkgttthrust -> Write();
+
     tree_output -> Write();
     output -> Close();
 }

@@ -1,7 +1,7 @@
 import model heft
 define p = p b b~
 generate p p > z h, (z > l+ l-), (h > g g)
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/sig_zh_lo_250GeV_14TeV_500k
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/sig_zh_lo_250GeV_14TeV_500k
 launch
 shower=Pythia8
 set pdlabel lhapdf

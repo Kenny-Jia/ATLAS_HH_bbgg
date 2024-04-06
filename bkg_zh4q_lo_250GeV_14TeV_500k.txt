@@ -3,7 +3,7 @@ define p = p b b~
 define q = u c s d b u~ c~ s~ d~ b~
 generate p p > z h, (z > l+ l-), (h > w+ > q q q q / g)
 add process p p > z h, (z > l+ l-), (h > z > q q q q / g)
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zh4q_lo_250GeV_14TeV_500k
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zh4q_lo_250GeV_14TeV_500k
 launch
 shower=Pythia8
 set pdlabel lhapdf

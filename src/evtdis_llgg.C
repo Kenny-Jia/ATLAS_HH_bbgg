@@ -38,8 +38,8 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     ExRootTreeReader *treeReader = new ExRootTreeReader(&chain);
     Long64_t nEntries = treeReader->GetEntries();
     if (evt_entry >= nEntries) {
-	std::cout << "Out of index!"<< std::endl;
-	return;
+        std::cout << "Out of index!"<< std::endl;
+        return;
     }
 
     TClonesArray *branchJet = treeReader->UseBranch("PFJet10");
@@ -71,6 +71,8 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     GenParticle *lep2;
     GenParticle *D1;
     GenParticle *D2;
+    GenParticle *ancestor;
+    GenParticle *offspring;
     GenParticle *genpar;
     TLorentzVector HiggsP4;
     TLorentzVector ZP4;
@@ -78,31 +80,45 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     TLorentzVector D2P4;
     TLorentzVector lep1P4;
     TLorentzVector lep2P4;
+    std::vector<TLorentzVector> final_products;
     bool emuflag = 0;
     for (int gentry=0; gentry < nGenPar; ++gentry){
         genpar = (GenParticle *) branchGenPar -> At(gentry);
+        if (genpar -> Status == 1) {
+            ancestor = (GenParticle*) branchGenPar->At(gentry);
+            offspring = (GenParticle*) branchGenPar->At(gentry);
+            while (ancestor -> M1 >= 0) {
+                ancestor = (GenParticle*) branchGenPar->At(ancestor->M1);
+                if (ancestor -> PID == 25) {
+                    final_products.push_back(offspring -> P4());
+                    break;
+                }
+            }
+        
+        }
         if (genpar -> PID == 25){
-	    trueHiggs = (GenParticle *) branchGenPar -> At(gentry);
-	    D1 = (GenParticle *) branchGenPar -> At(trueHiggs->D1);
-	    D2 = (GenParticle *) branchGenPar -> At(trueHiggs->D2);
-	    if (abs(D1 -> PID-13) == 8 and abs(D2 -> PID-13) == 8) {
-	        HiggsP4 = trueHiggs -> P4();
-		D1P4 = D1 -> P4();
-		D2P4 = D2 -> P4();
-	    }
-	}
-	if (genpar -> PID == 23){
-	    trueZ = (GenParticle *) branchGenPar -> At(gentry);
-	    lep1 = (GenParticle *) branchGenPar -> At(trueZ->D1);
-	    lep2 = (GenParticle *) branchGenPar -> At(trueZ->D2);
-	    if (abs(abs(lep1 -> PID)-12) == 1 and abs(abs(lep2 -> PID)-12) == 1 and lep1->PID + lep2->PID == 0) {
-	        ZP4 = trueZ -> P4();
-		lep1P4 = lep1 -> P4();
-		lep2P4 = lep2 -> P4();
-	    }
-	}
+            trueHiggs = (GenParticle *) branchGenPar -> At(gentry);
+            D1 = (GenParticle *) branchGenPar -> At(trueHiggs->D1);
+            D2 = (GenParticle *) branchGenPar -> At(trueHiggs->D2);
+            if (abs(D1 -> PID-13) == 8 and abs(D2 -> PID-13) == 8) {
+                HiggsP4 = trueHiggs -> P4();
+                D1P4 = D1 -> P4();
+                D2P4 = D2 -> P4();
+            }
+        }
+        if (genpar -> PID == 23){
+            trueZ = (GenParticle *) branchGenPar -> At(gentry);
+            lep1 = (GenParticle *) branchGenPar -> At(trueZ->D1);
+            lep2 = (GenParticle *) branchGenPar -> At(trueZ->D2);
+            if (abs(abs(lep1 -> PID)-12) == 1 and abs(abs(lep2 -> PID)-12) == 1 and lep1->PID + lep2->PID == 0) {
+                ZP4 = trueZ -> P4();
+            lep1P4 = lep1 -> P4();
+            lep2P4 = lep2 -> P4();
+            }
+        }
     }
-    std::cout << "Get Truth Info" << std::endl;
+    //std::cout << "Get Truth Info" << std::endl;
+    std::cout << "Real Higgs PT" << HiggsP4.Pt() << std::endl;
     const Double_t higgseta[] = {HiggsP4.Eta()};
     const Double_t higgsphi[] = {HiggsP4.Phi()};
     const Double_t zeta[] = {ZP4.Eta()};
@@ -115,9 +131,9 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     TGraph *zscat = new TGraph(1, zeta, zphi);
     TGraph *gluonscat = new TGraph(2, deta, dphi);
     TGraph *lepscat = new TGraph(2, lepeta, lepphi);
-    
-    if ((deta[0]-deta[1])*(deta[0]-deta[1]) + (dphi[0]-dphi[1])*(dphi[0]-dphi[1]) >= 1) {
-	std::cout << "!!!!!!!!!gluon pair far from each other!!!!!!!!!!" << std::endl;
+    double dPhi = TVector2::Phi_mpi_pi(dphi[0] - dphi[1]);
+    if ((deta[0]-deta[1])*(deta[0]-deta[1]) + dPhi * dPhi >= 1) {
+	    std::cout << "!!!!!!!!!gluon pair far from each other!!!!!!!!!!" << std::endl;
     }
 
     std::cout << "First lepton at " << lep1P4.Eta()<< ", " << lep1P4.Phi() << std::endl;
@@ -126,19 +142,27 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     Jet *jet;
     Jet *hjet;
     TLorentzVector jetP4;
+    TLorentzVector tmpP4;
     for (Int_t jentry = 0; jentry < nJet; ++jentry) {
-	jet = (Jet *) branchJet -> At(jentry);
-	if (TMath::Abs(jet -> Mass - 125) < mass_min) {
-	    mass_min = TMath::Abs(jet -> Mass - 125);
-	    hjet = (Jet *) branchJet -> At(jentry);
-	}    
+        jet = (Jet *) branchJet -> At(jentry);
+        if (jet->PT < 350) {
+            continue;
+        }
+        tmpP4 = jet -> P4();
+        if (tmpP4.DeltaR(ZP4) < 1.0) {
+            continue;
+        }
+        if (TMath::Abs(jet -> Mass - 125) < mass_min) {
+            mass_min = TMath::Abs(jet -> Mass - 125);
+            hjet = (Jet *) branchJet -> At(jentry);
+        }    
     }
 
     jetP4 = hjet -> P4();
 
-    if (jetP4.DeltaR(ZP4) < 1.5) {
-	std::cout << "Z and H too close!" << std::endl;
-	return;
+    if (jetP4.DeltaR(ZP4) < 1.0) {
+	    std::cout << "Z and H too close!" << std::endl;
+	    return;
     }
 
     TEllipse* jetcirc = new TEllipse(jetP4.Eta(), jetP4.Phi() ,1.0, 1.0);
@@ -148,29 +172,29 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
 
     TObject *object;
 
-    std::cout << "Find jet" << std::endl;
+    //::cout << "Find jet" << std::endl;
 
     Int_t towercnt = 0;
     Int_t trackcnt = 0;
-    std::cout <<  hjet -> Constituents.GetEntries() << "constituents in jet" << endl;
-    for(int i = 0; i < hjet->Constituents.GetEntries(); ++i) {
+    std::cout <<  hjet -> Constituents.GetEntries() << " constituents in jet" << endl;
+    for (int i = 0; i < hjet->Constituents.GetEntries(); ++i) {
         object = hjet->Constituents.At(i);
-	if(object == 0) {
-	    std::cout << "Constituents is unaccessible! Check memory loading!" << std::endl;
-	}
+        if (object == 0) {
+            std::cout << "Constituents is unaccessible! Check memory loading!" << std::endl;
+        }
         if(object->IsA() == Tower::Class()) {
-	    towercnt++;
+	        towercnt++;
     	}
-	if(object->IsA() == Track::Class()) {
-	    trackcnt++;
-	}
+        if(object->IsA() == Track::Class()) {
+            trackcnt++;
+        }
     }
     const Int_t towersize = towercnt;
     const Int_t tracksize = trackcnt;
     std::cout << towersize << " towers"<< " and " << tracksize << " tracks." << std::endl;
     if (towersize == 0 or tracksize == 0) {
-	std::cout << "Not enough tower or track!" << std::endl;
-	return;
+	    std::cout << "Not enough tower or track!" << std::endl;
+	    return;
     }
     Double_t towereta[towersize];
     Double_t tracketa[tracksize];
@@ -178,32 +202,33 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     Double_t trackphi[tracksize];
     towercnt = 0;
     trackcnt = 0;
-    std::cout << "Store jet constituents" << std::endl;
+    //std::cout << "Store jet constituents" << std::endl;
     for(int i = 0; i < hjet->Constituents.GetEntries(); ++i) {
         object = hjet->Constituents.At(i);
 	if(object == 0) {
 	    std::cout << "Constituents is unaccessible! Check memory loading!" << std::endl;
 	}
         if(object->IsA() == Tower::Class()) {
-  	    Tower *tower;
-	    tower = (Tower*) object;
-	    TLorentzVector towerP4;
-	    towerP4 = tower -> P4();
-	    towereta[towercnt] = towerP4.Eta();
-	    towerphi[towercnt] = towerP4.Phi();
-	    towercnt++;
+            Tower *tower;
+            tower = (Tower*) object;
+            TLorentzVector towerP4;
+            towerP4 = tower -> P4();
+            towereta[towercnt] = towerP4.Eta();
+            towerphi[towercnt] = towerP4.Phi();
+            towercnt++;
     	}
-	if(object->IsA() == Track::Class()) {
-	    Track *track;
-	    track = (Track*) object;
-	    TLorentzVector trackP4;
-	    trackP4 = track -> P4();
-	    tracketa[trackcnt] = trackP4.Eta();
-	    trackphi[trackcnt] = trackP4.Phi();
-	    trackcnt++;
-	}
+        if(object->IsA() == Track::Class()) {
+            Track *track;
+            track = (Track*) object;
+            TLorentzVector trackP4;
+            trackP4 = track -> P4();
+            tracketa[trackcnt] = trackP4.Eta();
+            trackphi[trackcnt] = trackP4.Phi();
+            trackcnt++;
+        }
     }
     std::cout << "Reconstruct higgs mass " << jetP4.Mag()<<std::endl;
+    std::cout << "Reconstruct higgs pt " << jetP4.Pt()<<std::endl;
 
     const Double_t* consttowereta = towereta;
     const Double_t* consttowerphi = towerphi;
@@ -212,6 +237,20 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     TGraph *towerscat = new TGraph(towersize, consttowereta, consttowerphi);
     TGraph *trackscat = new TGraph(tracksize, consttracketa, consttrackphi);
     //TH2D *towerhisto = new TH2D("towerhisto", "towerhisto", )
+//Plot truth products
+    const Int_t finalProductSize = final_products.size();
+
+    // Arrays to store eta and phi values
+    Double_t finalProductEta[finalProductSize];
+    Double_t finalProductPhi[finalProductSize];
+
+    // Fill the arrays
+    for (int i = 0; i < finalProductSize; ++i) {
+        finalProductEta[i] = final_products[i].Eta();
+        finalProductPhi[i] = final_products[i].Phi();
+    }
+    TGraph *finalProductScat = new TGraph(finalProductSize, finalProductEta, finalProductPhi);
+
 
     auto mg = new TMultiGraph();
 
@@ -236,13 +275,17 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     trackscat -> SetMarkerColor(kMagenta);
     trackscat -> SetMarkerStyle(kStar);
     trackscat -> SetMarkerSize(3);
-    TLegend *legend = new TLegend(0.15, 0.65, 0.35, 0.85);
+    finalProductScat -> SetMarkerColor(kOrange);
+    finalProductScat -> SetMarkerStyle(kCircle);
+    finalProductScat -> SetMarkerSize(3);
+    TLegend *legend = new TLegend(0.65, 0.65, 0.85, 0.85);
     legend -> AddEntry(higgsscat, "truth Higgs", "p");
     legend -> AddEntry(zscat, "truth Z boson", "p");
     legend -> AddEntry(gluonscat, "truth gluon pair", "p");
     legend -> AddEntry(lepscat, "truth lepton pair", "p");
     legend -> AddEntry(towerscat, "tower in jet", "p");
     legend -> AddEntry(trackscat, "track in jet", "p");
+    legend -> AddEntry(finalProductScat, "Higgs truth constituents", "p");
     legend -> AddEntry(jetcirc, "reco higgs jet", "l");
     //towerscat -> Draw("");
     //trackscat -> Draw("same");
@@ -252,7 +295,7 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     //lepscat -> Draw("same");
     //jetcirc -> Draw("same");
     //legend -> Draw("same");
-    
+    mg -> Add(finalProductScat);
     mg -> Add(towerscat);
     mg -> Add(trackscat);
     mg -> Add(gluonscat);
@@ -268,5 +311,7 @@ void evtdis_llgg(const char *inputFile, int evt_entry) {
     mg->SetMaximum(3.14);
     jetcirc -> Draw("same");
     legend -> Draw("same");
-    totalcanvas -> SaveAs("eventdisplay.png");
+    std::ostringstream filename;
+    filename << "eventdisplay_" << evt_entry << ".png";
+    totalcanvas -> SaveAs(filename.str().c_str());
 }

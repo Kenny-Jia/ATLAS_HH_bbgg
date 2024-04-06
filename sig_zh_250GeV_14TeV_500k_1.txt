@@ -1,6 +1,6 @@
 import model heft
 generate p p > z h, (z > l+ l-), (h > g g)
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/sig_zh_250GeV_14TeV_500k_1
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/sig_zh_250GeV_14TeV_500k_1
 launch
 shower=Pythia8
 set ptllmin 250

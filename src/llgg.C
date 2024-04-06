@@ -143,7 +143,7 @@ std::pair < double, double > calculateThrust(const std::vector < TLorentzVector 
 
 void llgg(const char * inputFile) {
 
-    Double_t ptcut = 300;
+    Double_t ptcut = 350;
     std::cout << "loading Delphes library" << std::endl;
     gSystem -> Load("/eos/user/h/hjia/ATLAS_HH_bbgg/Delphes-3.5.0/libDelphes.so");
     //gSystem->Load("libDelphes");
@@ -155,12 +155,12 @@ void llgg(const char * inputFile) {
     chain.Add(inputFile);
 
     std::string input(inputFile);
-    size_t pos = input.find("_250GeV_14TeV_500k.root");
+    size_t pos = input.find("_lo_250GeV_14TeV_500k.root");
     std::string channelName;
     if (pos != std::string::npos) {
         channelName = input.substr(0, pos);
     }
-    std::string prefix = "../../../../d/hjia625/ATLAS_H_gg/data/Delphes/";
+    std::string prefix = "/fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/Delphes/";
     size_t posprefix = channelName.find(prefix);
     if (pos != std::string::npos) {
         channelName.erase(posprefix, prefix.length());
@@ -188,17 +188,18 @@ void llgg(const char * inputFile) {
     TH1D * Hmass = new TH1D("Hmass", "jet pair invariant mass", 50, 30, 220);
     TH1D * Hetahisto = new TH1D("Hetahisto", "jet pair eta", 50, -3.2, 3.2);
     TH1D * tau21 = new TH1D("tau21", "higgs tau21", 30, 0, 1);
-    TH1D * tau42 = new TH1D("tau32", "higgs tau42", 30, 0, 1);
+    TH1D * tau42 = new TH1D("tau42", "higgs tau42", 30, 0, 1);
     TH1D * nchargehisto = new TH1D("nchargehisto", "number of charge constituents", 30, 0, 70);
     TH1D * nneutralhisto = new TH1D("nneutralhisto", "number of neutral constituents", 30, 0, 70);
+    TH1D * ntotalhisto = new TH1D("ntotalhisto", "number of constituents", 30, 0, 140);
     TH1D * pthisto = new TH1D("pthisto", "higgs pt", 30, 0, 1000);
     TH1D * ChargeFrachisto = new TH1D("ChargeFrachisto", "higgs Charged Energy Fraction", 30, 0, 1);
     TH1D * btaghisto = new TH1D("btaghisto", "higgs jet btag", 4, 0, 2);
-    TH1D * zhdishisto = new TH1D("zhdishisto", "z and higgs jet distance", 30, 0, 4);
+    TH1D * zhdishisto = new TH1D("zhdishisto", "z and higgs jet distance", 30, 2.94, 3.35);
     TH1D * truejethisto = new TH1D("truejethisto", "true higgs and higgs jet distance", 30, 0, 4);
-    TH1D * METhisto = new TH1D("METhisto", "MissingET", 30, 0, 250);
+    TH1D * METhisto = new TH1D("METhisto", "MissingET", 50, 0, 1000);
     TH1D * METhDishisto = new TH1D("METhDishisto", "MissingET higgs Dis", 30, 0, 6.28);
-    TH1D * nsmallhisto = new TH1D("nsmallhisto", "number of small jet", 4, 0, 4);
+    TH1D * nsmallhisto = new TH1D("nsmallhisto", "number of small jet", 8, 0, 8);
     TH1D * nsmallmasshisto = new TH1D("nsmallmasshisto", "number of small jet", 50, 0, 200);
     TH1D * thrusthisto = new TH1D("thrusthisto", "jet thrust", 100, 0.5, 1);
     TH1D * thrustmhisto = new TH1D("thrustmhisto", "jet thrust minor", 100, 0, 0.8);
@@ -218,6 +219,9 @@ void llgg(const char * inputFile) {
         Int_t nMu = branchMuon -> GetEntries();
         Int_t nGenPar = branchGenPar -> GetEntries();
 
+        MissingET *met;
+        met = (MissingET*) branchMET->At(0);
+
         TObject * object;
 
         Int_t emuflag = 0;
@@ -232,6 +236,10 @@ void llgg(const char * inputFile) {
             continue;
         }
         if (nJet == 0) {
+            continue;
+        }
+
+        if (met->MET >= 50) {
             continue;
         }
 
@@ -338,7 +346,7 @@ void llgg(const char * inputFile) {
                 continue;
             }
 
-            if (TMath::Abs(jet -> P4().DeltaR(z_ll) - TMath::Pi()) > 0.2) {
+            if (TMath::Abs(jet -> P4().DeltaR(z_ll)) < 1.0) {
                 continue;
             }
             if (TMath::Abs(jet -> Mass - 125) < mass_min) {
@@ -379,7 +387,7 @@ void llgg(const char * inputFile) {
         if (z_ll.M() < 76 or z_ll.M() > 106) {
             continue;
         }
-        if (h_gg.M() < 0 or h_gg.M() > 250) {
+        if (h_gg.M() < 100 or h_gg.M() > 150) {
             continue;
         }
         if (z_ll.Pt() < ptcut or h_gg.Pt() < ptcut) {
@@ -409,7 +417,7 @@ void llgg(const char * inputFile) {
         }
 
         if (smallBtag == true) {
-            continue;
+            //continue;
         }
 
         /*	
@@ -425,8 +433,6 @@ void llgg(const char * inputFile) {
 
         //true tag *********************************************
 
-        MissingET * met;
-        met = (MissingET * ) branchMET -> At(0);
         GenParticle * trueHiggs;
         GenParticle * genpar;
         GenParticle * muon;
@@ -523,28 +529,28 @@ void llgg(const char * inputFile) {
         //std::cout << "Thrust: " << thrust << std::endl;
         //std::cout << "Thrust_minor: " << thrust_minor << std::endl;
 
-        if (h_gg.M() < 91) {
-            std::cout << "find <91GeV event with n jet " << nJet << std::endl;
-            std::cout << "event number" << entry << " hmass = " << hmass << std::endl;
+        // if (h_gg.M() < 91) {
+        //     std::cout << "find <91GeV event with n jet " << nJet << std::endl;
+        //     std::cout << "event number" << entry << " hmass = " << hmass << std::endl;
 
-            for (Int_t jentry = 0; jentry < nJet; ++jentry) {
-                jet = (Jet * ) branchJet -> At(jentry);
-                if (fabs(jet -> Eta) > 3.0) {
-                    continue;
-                    std::cout << "jet eta too large pass" << std::endl;
-                }
-                if (jet -> PT < ptcut) {
-                    continue;
-                    std::cout << "jet pt small pass" << std::endl;
-                }
+        //     for (Int_t jentry = 0; jentry < nJet; ++jentry) {
+        //         jet = (Jet * ) branchJet -> At(jentry);
+        //         if (fabs(jet -> Eta) > 3.0) {
+        //             continue;
+        //             std::cout << "jet eta too large pass" << std::endl;
+        //         }
+        //         if (jet -> PT < ptcut) {
+        //             continue;
+        //             std::cout << "jet pt small pass" << std::endl;
+        //         }
 
-                if (TMath::Abs(jet -> P4().DeltaR(z_ll) - TMath::Pi()) > 0.2) {
-                    //continue;
-                    std::cout << "jet close to z" << std::endl;
-                }
-                std::cout << "jet " << jentry << " with mass " << jet -> Mass << std::endl;
-            }
-        }
+        //         if (TMath::Abs(jet -> P4().DeltaR(z_ll) - TMath::Pi()) > 0.2) {
+        //             //continue;
+        //             std::cout << "jet close to z" << std::endl;
+        //         }
+        //         std::cout << "jet " << jentry << " with mass " << jet -> Mass << std::endl;
+        //     }
+        // }
 
         total++;
         //std::cout << "event number " << entry << std::endl;
@@ -554,6 +560,7 @@ void llgg(const char * inputFile) {
         tau42 -> Fill(htau42);
         nchargehisto -> Fill(hNCharged);
         nneutralhisto -> Fill(hNNeutral);
+        ntotalhisto -> Fill(hNCharged+hNNeutral);
         pthisto -> Fill(hpt);
         ChargeFrachisto -> Fill(hChargeFrac);
         btaghisto -> Fill(hjet -> BTag);
@@ -566,7 +573,10 @@ void llgg(const char * inputFile) {
         thrustmhisto -> Fill(thrust_minor);
         njethisto -> Fill(nJet);
         Hetahisto -> Fill(heta);
-        //std::cout << "event number" << entry << " hmass = " << hmass << std::endl;
+        if (hmass > 100 and hmass < 150) {
+            std::cout << "event number" << entry << " hmass = " << hmass << std::endl;
+            std::cout << "event number" << entry << " met = " << met->MET << std::endl;
+        }
         //std::cout << nJet << std::endl;
         //std::cout <<  z_ll.DeltaR(h_gg) << std::endl;
     }
@@ -618,6 +628,12 @@ void llgg(const char * inputFile) {
     neutralcanvas -> SetCanvasSize(1200, 1200);
     nneutralhisto -> Draw("HIST");
     neutralcanvas -> SaveAs((channelName + "_anti_nneutral.png").c_str());
+
+    TCanvas * ntotalcanvas = new TCanvas("ntotalcanvas", "Canvas", 1400, 1400, 1400, 1400);
+    ntotalcanvas -> SetWindowSize(1204, 1228);
+    ntotalcanvas -> SetCanvasSize(1200, 1200);
+    ntotalhisto -> Draw("HIST");
+    ntotalcanvas -> SaveAs((channelName + "_anti_ntotal.png").c_str());
 
     TCanvas * ptcanvas = new TCanvas("ptcanvas", "Canvas", 1400, 1400, 1400, 1400);
     ptcanvas -> SetWindowSize(1204, 1228);

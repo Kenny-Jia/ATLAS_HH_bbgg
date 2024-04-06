@@ -1,7 +1,7 @@
 import model sm-full 
 define q = u c s d b u~ c~ s~ d~ b~
 generate p p > z h, (z > l+ l-), (h > w+ w-, w+ > q q, w- > q q)
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zhww_250GeV_14TeV_500k_1
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zhww_250GeV_14TeV_500k_1
 launch
 shower=Pythia8
 set hard_survey 2

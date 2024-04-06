@@ -5,7 +5,7 @@ define l+ = e+ mu+
 define l- = e- mu-
 generate p p > z j / a h, (z > l+ l-) @0
 add process p p > z j j / a h, (z > l+ l-)
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjets_lo_250GeV_14TeV_1M_2
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjets_lo_250GeV_14TeV_1M_2
 launch
 shower=Pythia8
 set pdlabel lhapdf

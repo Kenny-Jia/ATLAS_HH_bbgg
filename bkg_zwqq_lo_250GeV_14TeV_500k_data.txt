@@ -1,0 +1,27 @@
+import model heft 
+define p = p b b~
+define q = u d s c b u~ d~ s~ c~ b~ 
+define w = w+  w-
+generate p p > z w, (z > l+ l-), (w > q q)
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zwqq_lo_250GeV_14TeV_500k_data
+launch
+shower=Pythia8
+set pdlabel lhapdf
+set lhaid 325100
+set pt_min_pdg {23: 100}
+set ptllmin 100
+set etaj 3.0
+set etab 3.0
+set ptj 8
+set ptb 8
+set etajmin -3.0
+set etabmin -3.0
+set mh 125.0
+set wh auto 
+set wz auto 
+set ebeam1 7000
+set ebeam2 7000
+set nevents 500000
+set iseed 3823211
+set use_syst False
+0

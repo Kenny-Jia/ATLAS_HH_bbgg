@@ -3,7 +3,7 @@ generate p p > z / a h, z > l+ l- @0
 add process p p > z j / a h, z > l+ l- @1
 add process p p > z j j / a h, z > l+ l- @2
 add process p p > z j j j / a h, z > l+ l- @3
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjets_lo_250GeV_14TeV
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_zjets_lo_250GeV_14TeV
 launch
 shower=Pythia8
 set pt_min_pdg {23: 100}

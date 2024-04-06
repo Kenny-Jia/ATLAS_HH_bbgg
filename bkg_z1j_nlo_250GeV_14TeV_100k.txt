@@ -1,6 +1,6 @@
 import model loop_sm-no_b_mass
 generate p p > z j / a h [QCD] @0
-output /gpfs/slac/atlas/fs1/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_z1j_nlo_250GeV_14TeV_100k
+output /fs/ddn/sdf/group/atlas/d/hjia625/ATLAS_H_gg/data/MadGraph/bkg_z1j_nlo_250GeV_14TeV_100k
 launch
 shower=Pythia8
 madspin=ON
