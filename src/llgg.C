@@ -346,7 +346,7 @@ void llgg(const char * inputFile) {
                 continue;
             }
 
-            if (TMath::Abs(jet -> P4().DeltaR(z_ll)) < 1.0) {
+            if (TMath::Abs(jet -> P4().DeltaR(z_ll)) < 2.0) {
                 continue;
             }
             if (TMath::Abs(jet -> Mass - 125) < mass_min) {
@@ -417,7 +417,7 @@ void llgg(const char * inputFile) {
         }
 
         if (smallBtag == true) {
-            //continue;
+            continue;
         }
 
         /*	

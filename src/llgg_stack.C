@@ -616,7 +616,7 @@ void llgg(const char * inputFile,
             if (jet -> PT < ptcut) {
                 continue;
             }
-            if (TMath::Abs(jet -> P4().DeltaR(z_ll)) < 1.0) {
+            if (TMath::Abs(jet -> P4().DeltaR(z_ll)) < 2.0) {
                 continue;
             }
             if (TMath::Abs(jet -> Mass - 125) < mass_min) {
@@ -703,7 +703,7 @@ void llgg(const char * inputFile,
             continue;
         }
         if (z_ll.Pt() < ptcut or h_gg.Pt() < ptcut) {
-            //continue;
+            continue;
         }
 
         Double_t lpairmass = z_ll.Mag();
